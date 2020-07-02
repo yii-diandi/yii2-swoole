@@ -1,5 +1,5 @@
 {
-    "name": "diandi/yii2-swoole",
+    "name": "yii-diandi/yii2-swoole",
     "description": "run yii2 in swoole coroutine mode",
     "keywords": [
         "yii2",
