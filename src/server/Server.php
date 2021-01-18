@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2020-07-02 03:30:16
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2020-07-02 11:53:25
+ * @Last Modified time: 2021-01-17 23:30:44
  */
  
 /**
@@ -73,6 +73,7 @@ class Server
         $this->parseConfig($config);
         $this->init();
     }
+    
     /**
      * 服务初始化
      */
@@ -221,12 +222,13 @@ class Server
      */
     static function autoCreate($nodeConfig)
     {
+        
         if(isset($nodeConfig['class'])){
             $class = $nodeConfig['class'];
             unset($nodeConfig['class']);
             $instance = new $class($nodeConfig);
             if($instance instanceof Server){
-               return $instance;
+                return $instance;
             }
             throw new \Exception('class must implement diandi\swoole\server');
         }else{
@@ -248,8 +250,11 @@ class Server
             return;
         }
         $command = $argv[1];
-
+        
+        
         $pidFile = $config['setting']['pid_file'];
+        
+        
         $masterPid     = file_exists($pidFile) ? file_get_contents($pidFile) : null;
         if ($command == 'start'){
             if ($masterPid > 0 and posix_kill($masterPid,0)) {
@@ -278,6 +283,21 @@ class Server
             }
             exit;
         }
+    }
+
+    /**
+     * 检测目录并循环创建目录
+     *
+     * @param $catalogue
+     */
+    public static function mkdirs($catalogue)
+    {
+        if (!file_exists($catalogue)) {
+            self::mkdirs(dirname($catalogue));
+            mkdir($catalogue, 0777);
+        }
+
+        return true;
     }
 
 }

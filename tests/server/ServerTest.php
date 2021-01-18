@@ -12,7 +12,7 @@ use yiiunit\extension\swoole\TestCase;
 use diandi\swoole\server\Server;
 
 
-class ServerTest extends TestCase
+class ServerTest extends TestCase5
 {
     function testAutoCreate(){
         $config = require __DIR__.'/../config/swoole.php';
