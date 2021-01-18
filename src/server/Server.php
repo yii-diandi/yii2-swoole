@@ -296,7 +296,6 @@ class Server
             self::mkdirs(dirname($catalogue));
             mkdir($catalogue, 0777);
         }
-
         return true;
     }
 
