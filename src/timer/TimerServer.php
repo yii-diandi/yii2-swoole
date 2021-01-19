@@ -5,27 +5,25 @@
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
  * @Last Modified time: 2021-01-19 22:53:35
  */
- 
-/**
- * @author xialeistudio
- * @date 2019-05-17
- */
 
-namespace diandi\swoole\web;
+namespace diandi\swoole\timer;
 
 use Exception;
 use Throwable;
 use Yii;
 use yii\base\BaseObject;
 use yii\base\InvalidConfigException;
+use Swoole\Timer as Server;
 
 /**
- * Web服务器
+ * 定时器
  * Class WebServer
- * @package app\servers
+ * @package app\timer
  */
-class Server extends BaseObject
+class TimerServer extends BaseObject
 {
+    use Timer;
+
     /**
      * @var string 监听主机
      */
@@ -33,7 +31,7 @@ class Server extends BaseObject
     /**
      * @var int 监听端口
      */
-    public $port = 9501;
+    public $port = 9503;
     /**
      * @var int 进程模型
      */
@@ -46,16 +44,22 @@ class Server extends BaseObject
      * @var array 服务器选项
      */
     public $options = [
-        'worker_num' => 2,
-        'daemonize' => 0,
-        'task_worker_num' => 2
+        'worker_num'     => 1,   //必须设置为1
+        'max_request'    => 10000,
+        'open_eof_check' => true,        //打开EOF检测
+        'package_eof'    => "\r\n\r\n", //设置EOF
+        'open_eof_split' => true,        //启用EOF自动分包
+        'dispatch_mode'  => 2,
+        'debug_mode'     => 1 ,
+        'daemonize'      => 1,
+        'log_file'       => __DIR__ . '/Log/swoole.log'
     ];
     /**
      * @var array 应用配置
      */
     public $app = [];
     /**
-     * @var \Swoole\Http\Server swoole server实例
+     * @var Server swoole server实例
      */
     public $server;
 
@@ -70,8 +74,8 @@ class Server extends BaseObject
             throw new InvalidConfigException('The "app" property mus be set.');
         }
 
-        if (!$this->server instanceof \Swoole\Http\Server) {
-            $this->server = new \Swoole\Http\Server($this->host, $this->port, $this->mode, $this->sockType);
+        if (!$this->server instanceof Server) {
+            $this->server = new Server($this->host, $this->port, $this->mode, $this->sockType);
             $this->server->set($this->options);
         }
 
@@ -86,13 +90,20 @@ class Server extends BaseObject
      */
     public function events()
     {
+       
         return [
             'start' => [$this, 'onStart'],
             'workerStart' => [$this, 'onWorkerStart'],
             'workerError' => [$this, 'onWorkerError'],
-            'request' => [$this, 'onRequest'],
-            'task' => [$this, 'onTask'],
-            'finish' => [$this, 'onFinish'],
+            'receive' => [$this, 'onReceive'],
+            'shutdown' => [$this, 'onShutdown'],
+            'tick' => [$this, 'onTick'],
+            'after' => [$this, 'onAfter'],
+            'clear' => [$this, 'onClear'],
+            'clearAll' => [$this, 'onClearAll'],
+            'list' => [$this, 'onList'],
+            'stats' => [$this, 'onStats'],
+            'set' => [$this, 'onSet']
         ];
     }
     
@@ -154,20 +165,20 @@ class Server extends BaseObject
 
     /**
      * master启动
-     * @param \Swoole\Http\Server $server
+     * @param Server $server
      */
-    public function onStart(\Swoole\Http\Server $server)
+    public function onStart(Server $server)
     {
         printf("listen on %s:%d\n", $server->host, $server->port);
     }
 
     /**
      * 工作进程启动时实例化框架
-     * @param \Swoole\Http\Server $server
+     * @param Server $server
      * @param int $workerId
      * @throws InvalidConfigException
      */
-    public function onWorkerStart(\Swoole\Http\Server $server, $workerId)
+    public function onWorkerStart(Server $server, $workerId)
     {
         new Application($this->app);
         Yii::$app->set('server', $server);
@@ -176,55 +187,62 @@ class Server extends BaseObject
 
     /**
      * 工作进程异常
-     * @param \Swoole\Http\Server $server
+     * @param Server $server
      * @param $workerId
      * @param $workerPid
      * @param $exitCode
      * @param $signal
      */
-    public function onWorkerError(\Swoole\Http\Server $server, $workerId, $workerPid, $exitCode, $signal)
+    public function onWorkerError(Server $server, $workerId, $workerPid, $exitCode, $signal)
     {
         fprintf(STDERR, "worker error. id=%d pid=%d code=%d signal=%d\n", $workerId, $workerPid, $exitCode, $signal);
     }
 
-    /**
-     * 处理请求
-     * @param \Swoole\Http\Request $request
-     * @param \Swoole\Http\Response $response
-     */
-    public function onRequest(\Swoole\Http\Request $request, \Swoole\Http\Response $response)
+    
+    public function onReceive($value='')
     {
-        Yii::$app->request->setRequest($request);
-        Yii::$app->response->setResponse($response);
-        Yii::$app->run();
-        Yii::$app->response->clear();
+      
     }
 
-    /**
-     * 分发任务
-     * @param \Swoole\Http\Server $server
-     * @param $taskId
-     * @param $workerId
-     * @param $data
-     * @return mixed
-     */
-    public function onTask(\Swoole\Http\Server $server, $taskId, $workerId, $data)
+    public function onShutdown($value='')
     {
-        try {
-            $handler = $data[0];
-            $params = $data[1] ?? [];
-            list($class, $action) = $handler;
-
-            $obj = new $class();
-            return call_user_func_array([$obj, $action], $params);
-        } catch (Throwable $e) {
-            Yii::$app->errorHandler->handleException($e);
-            return 1;
-        }
+      
     }
 
-    public function onFinish(\Swoole\Http\Server $server, $taskId, $data)
+    public function onTick($value='')
     {
-        echo "Task#$taskId finished, data_len=" . strlen($data) . PHP_EOL;
+      
     }
+
+    public function onAfter($value='')
+    {
+      
+    }
+
+    public function onClear($value='')
+    {
+      
+    }
+
+    public function onClearAll($value='')
+    {
+      
+    }
+
+    public function onList($value='')
+    {
+      
+    }
+
+    public function onStats($value='')
+    {
+      
+    }
+
+    public function onSet($value='')
+    {
+      
+    }
+
+   
 }

@@ -1,18 +1,15 @@
 <?php
 /**
- * @Author: Wang chunsheng  email:2192138785@qq.com
- * @Date:   2021-01-19 22:47:02
- * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-01-19 22:53:35
- */
- 
-/**
- * @author xialeistudio
- * @date 2019-05-17
+ * Created by PhpStorm.
+ * User: diandi
+ * Date: 2017/12/9
+ * Time: 上午11:49
  */
 
-namespace diandi\swoole\web;
+namespace diandi\swoole\websocket;
 
+use Swoole\WebSocket\Frame;
+use Swoole\WebSocket\Server;
 use Exception;
 use Throwable;
 use Yii;
@@ -20,20 +17,20 @@ use yii\base\BaseObject;
 use yii\base\InvalidConfigException;
 
 /**
- * Web服务器
- * Class WebServer
- * @package app\servers
+ * Class WebSocketServer
+ * @package diandi\swoole\server
+ * @deprecated please use swoole native web sockect
  */
-class Server extends BaseObject
+class websocketServer extends BaseObject
 {
-    /**
+      /**
      * @var string 监听主机
      */
     public $host = 'localhost';
     /**
      * @var int 监听端口
      */
-    public $port = 9501;
+    public $port = 9502;
     /**
      * @var int 进程模型
      */
@@ -55,7 +52,7 @@ class Server extends BaseObject
      */
     public $app = [];
     /**
-     * @var \Swoole\Http\Server swoole server实例
+     * @var \Swoole\WebSocket\Server swoole server实例
      */
     public $server;
 
@@ -70,8 +67,8 @@ class Server extends BaseObject
             throw new InvalidConfigException('The "app" property mus be set.');
         }
 
-        if (!$this->server instanceof \Swoole\Http\Server) {
-            $this->server = new \Swoole\Http\Server($this->host, $this->port, $this->mode, $this->sockType);
+        if (!$this->server instanceof \Swoole\WebSocket\Server) {
+            $this->server = new \Swoole\WebSocket\Server($this->host, $this->port, $this->mode, $this->sockType);
             $this->server->set($this->options);
         }
 
@@ -90,9 +87,9 @@ class Server extends BaseObject
             'start' => [$this, 'onStart'],
             'workerStart' => [$this, 'onWorkerStart'],
             'workerError' => [$this, 'onWorkerError'],
-            'request' => [$this, 'onRequest'],
-            'task' => [$this, 'onTask'],
-            'finish' => [$this, 'onFinish'],
+            'open' => [$this, 'onOpen'],
+            'message' => [$this, 'onMessage'],
+            'close' => [$this, 'onClose'],
         ];
     }
     
@@ -154,20 +151,20 @@ class Server extends BaseObject
 
     /**
      * master启动
-     * @param \Swoole\Http\Server $server
+     * @param \Swoole\WebSocket\Server $server
      */
-    public function onStart(\Swoole\Http\Server $server)
+    public function onStart(Server $server)
     {
         printf("listen on %s:%d\n", $server->host, $server->port);
     }
 
     /**
      * 工作进程启动时实例化框架
-     * @param \Swoole\Http\Server $server
+     * @param \Swoole\WebSocket\Server $server
      * @param int $workerId
      * @throws InvalidConfigException
      */
-    public function onWorkerStart(\Swoole\Http\Server $server, $workerId)
+    public function onWorkerStart(Server $server, $workerId)
     {
         new Application($this->app);
         Yii::$app->set('server', $server);
@@ -176,55 +173,35 @@ class Server extends BaseObject
 
     /**
      * 工作进程异常
-     * @param \Swoole\Http\Server $server
+     * @param \Swoole\WebSocket\Server $server
      * @param $workerId
      * @param $workerPid
      * @param $exitCode
      * @param $signal
      */
-    public function onWorkerError(\Swoole\Http\Server $server, $workerId, $workerPid, $exitCode, $signal)
+    public function onWorkerError(Server $server, $workerId, $workerPid, $exitCode, $signal)
     {
         fprintf(STDERR, "worker error. id=%d pid=%d code=%d signal=%d\n", $workerId, $workerPid, $exitCode, $signal);
     }
 
-    /**
-     * 处理请求
-     * @param \Swoole\Http\Request $request
-     * @param \Swoole\Http\Response $response
-     */
-    public function onRequest(\Swoole\Http\Request $request, \Swoole\Http\Response $response)
-    {
-        Yii::$app->request->setRequest($request);
-        Yii::$app->response->setResponse($response);
-        Yii::$app->run();
-        Yii::$app->response->clear();
-    }
 
-    /**
-     * 分发任务
-     * @param \Swoole\Http\Server $server
-     * @param $taskId
-     * @param $workerId
-     * @param $data
-     * @return mixed
-     */
-    public function onTask(\Swoole\Http\Server $server, $taskId, $workerId, $data)
-    {
-        try {
-            $handler = $data[0];
-            $params = $data[1] ?? [];
-            list($class, $action) = $handler;
 
-            $obj = new $class();
-            return call_user_func_array([$obj, $action], $params);
-        } catch (Throwable $e) {
-            Yii::$app->errorHandler->handleException($e);
-            return 1;
+    public function onOpen(Server $server,$worker_id)
+    {
+        if($this->server){
+            $this->server->onOpen($server,$worker_id);
         }
     }
 
-    public function onFinish(\Swoole\Http\Server $server, $taskId, $data)
-    {
-        echo "Task#$taskId finished, data_len=" . strlen($data) . PHP_EOL;
+    public function onMessage(Server $ws,Frame $frame){
+        if($this->server){
+            $this->server->onMessage($ws,$frame);
+        }
+    }
+
+    public function onClose(Server $ws, $fd) {
+        if($this->server){
+            $this->server->onClose($ws,$fd);
+        }
     }
 }
