@@ -200,7 +200,6 @@ class WebsocketServer extends BaseObject
         echo "Task#$taskId finished, data_len=" . strlen($data) . PHP_EOL;
     }
 
-
     /**
      * 工作进程异常
      * @param \Swoole\WebSocket\Server $server
