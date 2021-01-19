@@ -87,6 +87,8 @@ class WebsocketServer extends BaseObject
             'start' => [$this, 'onStart'],
             'workerStart' => [$this, 'onWorkerStart'],
             'workerError' => [$this, 'onWorkerError'],
+            'task' => [$this, 'onTask'],
+            'finish' => [$this, 'onFinish'],
             'open' => [$this, 'onOpen'],
             'message' => [$this, 'onMessage'],
             'close' => [$this, 'onClose'],
@@ -168,6 +170,34 @@ class WebsocketServer extends BaseObject
     {
         new Application($this->app);
         Yii::$app->set('server', $server);
+    }
+
+      /**
+     * 分发任务
+     * @param \Swoole\Http\Server $server
+     * @param $taskId
+     * @param $workerId
+     * @param $data
+     * @return mixed
+     */
+    public function onTask(\Swoole\Http\Server $server, $taskId, $workerId, $data)
+    {
+        try {
+            $handler = $data[0];
+            $params = $data[1] ?? [];
+            list($class, $action) = $handler;
+
+            $obj = new $class();
+            return call_user_func_array([$obj, $action], $params);
+        } catch (Throwable $e) {
+            Yii::$app->errorHandler->handleException($e);
+            return 1;
+        }
+    }
+
+    public function onFinish(\Swoole\Http\Server $server, $taskId, $data)
+    {
+        echo "Task#$taskId finished, data_len=" . strlen($data) . PHP_EOL;
     }
 
 
