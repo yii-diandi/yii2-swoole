@@ -21,7 +21,7 @@ use yii\base\InvalidConfigException;
  * @package diandi\swoole\server
  * @deprecated please use swoole native web sockect
  */
-class websocketServer extends BaseObject
+class WebsocketServer extends BaseObject
 {
       /**
      * @var string 监听主机
