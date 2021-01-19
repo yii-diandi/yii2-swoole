@@ -1,9 +1,7 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: diandi
- * Date: 2017/3/1
- * Time: 下午3:04
+ * @author xialeistudio
+ * @date 2019-05-17
  */
 
 namespace diandi\swoole\web;
@@ -12,7 +10,8 @@ use Yii;
 use yii\base\InvalidConfigException;
 
 /**
- * Class Response for swoole
+ * Swoole Response Proxy
+ * Class Response
  * @package diandi\swoole\web
  */
 class Response extends \yii\web\Response
@@ -20,61 +19,47 @@ class Response extends \yii\web\Response
     /**
      * @var \Swoole\Http\Response
      */
-    protected $swooleResponse;
+    private $_response;
 
     /**
-     * 重置Response,重置时清变量
-     * @param $res
+     * @return \Swoole\Http\Response
      */
-    public function setSwooleResponse($res)
+    public function getResponse()
     {
-        $this->swooleResponse = $res;
-        $this->clear();
-    }
-
-    public function getSwooleResponse()
-    {
-        return $this->swooleResponse;
-    }
-
-    public function send()
-    {
-        return parent::send();
+        return $this->_response;
     }
 
     /**
-     * @inheritdoc
+     * @param \Swoole\Http\Response $response
+     */
+    public function setResponse($response)
+    {
+        $this->_response = $response;
+    }
+
+    /**
+     * @inheritDoc
+     * @throws InvalidConfigException
      */
     protected function sendHeaders()
     {
-        if (!$this->swooleResponse) {
-            parent::sendHeaders();
-            return;
-        }
-
-        $headers = $this->getHeaders();
-        if ($headers->count > 0) {
-            foreach ($headers as $name => $values) {
-                $name = str_replace(' ', '-', ucwords(str_replace('-', ' ', $name)));
-                foreach ($values as $value) {
-                    $this->swooleResponse->header($name, $value);
-                }
+        foreach ($this->getHeaders() as $name => $values) {
+            $name = str_replace(' ', '-', ucwords(str_replace('-', ' ', $name)));
+            foreach ($values as $value) {
+                $this->_response->header($name, $value);
             }
         }
-        $this->swooleResponse->status($this->getStatusCode());
+        $this->_response->status($this->getStatusCode());
         $this->sendCookies();
     }
 
     /**
-     * @inheritdoc
+     * @inheritDoc
+     * @throws InvalidConfigException
      */
     protected function sendCookies()
     {
-        if (!$this->swooleResponse) {
-            return parent::sendCookies();
-        }
-
-        if ($this->getCookies()->count == 0) {
+        if ($this->getCookies() === null) {
             return;
         }
         $request = Yii::$app->getRequest();
@@ -87,51 +72,43 @@ class Response extends \yii\web\Response
         foreach ($this->getCookies() as $cookie) {
             $value = $cookie->value;
             if ($cookie->expire != 1 && isset($validationKey)) {
+                /** @noinspection PhpUndefinedMethodInspection */
                 $value = Yii::$app->getSecurity()->hashData(serialize([$cookie->name, $value]), $validationKey);
             }
-            $this->swooleResponse->cookie($cookie->name, $value, $cookie->expire, $cookie->path, $cookie->domain, $cookie->secure, $cookie->httpOnly);
+            $this->_response->cookie($cookie->name, $value, $cookie->expire, $cookie->path, $cookie->domain, $cookie->secure, $cookie->httpOnly);
         }
-
     }
 
     /**
-     * @inheritdoc
+     * @inheritDoc
      */
     protected function sendContent()
     {
-        if (!$this->swooleResponse) {
-            return parent::sendContent();
-        }
         if ($this->stream === null) {
-            if ($this->content) {
-                $this->swooleResponse->end($this->content);
-            } else {
-                $this->swooleResponse->end();
-            }
+            $this->_response->end($this->content);
             return;
         }
 
         set_time_limit(0); // Reset time limit for big files
-        $chunkSize = 2 * 1024 * 1024; // 2MB per chunk swoole limit
+        $chunkSize = 8 * 1024 * 1024; // 8MB per chunk
 
         if (is_array($this->stream)) {
-            list ($handle, $begin, $end) = $this->stream;
+            list($handle, $begin, $end) = $this->stream;
             fseek($handle, $begin);
             while (!feof($handle) && ($pos = ftell($handle)) <= $end) {
                 if ($pos + $chunkSize > $end) {
                     $chunkSize = $end - $pos + 1;
                 }
-                $this->swooleResponse->write(fread($handle, $chunkSize));
-                flush(); // Free up memory. Otherwise large files will trigger PHP's memory limit.
+                $this->_response->write(fread($handle, $chunkSize));
             }
             fclose($handle);
+            return;
         } else {
             while (!feof($this->stream)) {
-                $this->swooleResponse->write(fread($this->stream, $chunkSize));
-                flush();
+                $this->_response->write(fread($this->stream, $chunkSize));
             }
             fclose($this->stream);
         }
-        $this->swooleResponse->end();
+        $this->_response->end();
     }
 }
