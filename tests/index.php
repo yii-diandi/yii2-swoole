@@ -17,4 +17,4 @@ require __DIR__ . '/../vendor/yiisoft/yii2/Yii.php';
 
 $config = require __DIR__ . '/config/server.php';
 $server = new Server($config);
-$server->start();
+$server->run();
