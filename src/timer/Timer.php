@@ -1,5 +1,12 @@
 <?php
 /**
+ * @Author: Wang chunsheng  email:2192138785@qq.com
+ * @Date:   2021-01-21 01:43:33
+ * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
+ * @Last Modified time: 2021-01-21 01:43:39
+ */
+ <?php
+/**
  * Created by PhpStorm.
  * User: diandi
  * Date: 2017/9/6
@@ -21,7 +28,7 @@ use yii\base\InvalidParamException;
  *      - $coroutineID 启动的协程ID
  * @package diandi\swoole\timer
  */
-interface Timer
+class Timer
 {
     private static $tickMap = [];
     private static $afterMap = [];

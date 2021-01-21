@@ -96,41 +96,44 @@ nickname	用户昵称
 head_portrait	用户头像
 返回(1)
 
-{
-　　"type":"login",
-　　"from_client_id":2,
-　　"to_client_id":"all",
-　　"time":"2018-04-10 16:41:29",
-　　"count":"1",
-　　"member":{
-　　　　"fd":2,
-　　　　"room_id":10001,
-　　　　"user_id":1,
-　　　　"nickname":"隔壁老王",
-　　　　"head_portrait":"123"
-　　}
-}
+    {
+    　　"type":"login",
+    　　"from_client_id":2,
+    　　"to_client_id":"all",
+    　　"time":"2018-04-10 16:41:29",
+    　　"count":"1",
+    　　"member":{
+    　　　　"fd":2,
+    　　　　"room_id":10001,
+    　　　　"user_id":1,
+    　　　　"nickname":"隔壁老王",
+    　　　　"head_portrait":"123"
+    　　}
+    }
+
 返回(2)
 
 当前登录的人还会返回一个在线列表
 
-{
-　　"type":"list",
-　　"from_client_id":2,
-　　"to_client_id":2,
-　　"time":"2018-04-10 16:41:29",
-　　"list":[{
-     　　"fd":2,
-     　　"room_id":10001,
-     　　"user_id":1,
-     　　"nickname":"隔壁老王",
-     　　"head_portrait":"123"
-     }]
-}
+    {
+    　　"type":"list",
+    　　"from_client_id":2,
+    　　"to_client_id":2,
+    　　"time":"2018-04-10 16:41:29",
+    　　"list":[{
+        　　"fd":2,
+        　　"room_id":10001,
+        　　"user_id":1,
+        　　"nickname":"隔壁老王",
+        　　"head_portrait":"123"
+        }]
+    }
+
 发言
 请求地址
 
-ws://[to/you/url]:9501
+    ws://[to/you/url]:9501
+
 参数
 
 参数名	说明
@@ -139,17 +142,19 @@ to_client_id	对谁说话:默认 all
 content	内容
 返回
 
-{
-　　"type":"say",
-　　"from_client_id":2,
-　　"to_client_id":"all",
-　　"time":"2018-04-10 16:43:00",
-　　"content":"123"
-}
+    {
+    　　"type":"say",
+    　　"from_client_id":2,
+    　　"to_client_id":"all",
+    　　"time":"2018-04-10 16:43:00",
+    　　"content":"123"
+    }
+
 送礼物
 请求地址
 
-ws://[to/you/url]:9501
+    ws://[to/you/url]:9501
+
 参数
 
 参数名	说明
@@ -157,27 +162,29 @@ type	gift
 gift_id	礼物id
 返回
 
-{
-	"type": "gift",
-	"from_client_id": 4,
-	"to_client_id": "all",
-	"gift_id": "礼物id",
-	"time": "2018-03-06 11:27:15"
-}
+    {
+        "type": "gift",
+        "from_client_id": 4,
+        "to_client_id": "all",
+        "gift_id": "礼物id",
+        "time": "2018-03-06 11:27:15"
+    }
+
 离开房间
 请求地址
 
-ws://[to/you/url]:9501
+    ws://[to/you/url]:9501
+    
 参数
 
 参数名	说明
 type	leave
 返回
 
-{
-	"type": "leave",
-	"from_client_id": 1,
-	"to_client_id": "all",
-	"count": 2,
-	"time": "2018-03-06 11:27:15"
-}
+    {
+        "type": "leave",
+        "from_client_id": 1,
+        "to_client_id": "all",
+        "count": 2,
+        "time": "2018-03-06 11:27:15"
+    }

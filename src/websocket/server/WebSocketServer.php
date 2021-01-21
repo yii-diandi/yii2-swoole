@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-01-20 04:45:05
+ * @Last Modified time: 2021-01-21 21:22:08
  */
  
 namespace diandi\swoole\websocket\server;
@@ -13,6 +13,7 @@ use Yii;
 use diandi\swoole\websocket\live\Room;
 use diandi\swoole\websocket\live\RoomMap;
 use diandi\swoole\websocket\live\RoomMember;
+use Throwable;
 use yii\base\BaseObject;
 
 /**
@@ -90,6 +91,8 @@ class WebSocketServer extends BaseObject
             {
                 $this->server = new \Swoole\WebSocket\Server($this->host, $this->port, $this->mode, $this->sockType | SWOOLE_SSL);
             }
+
+            
             
             $this->server->set($this->options);
         }
@@ -190,7 +193,7 @@ class WebSocketServer extends BaseObject
      */
     public function onStart(\Swoole\WebSocket\Server $server)
     {
-        printf("listen on %s:%d\n", $server->host, $server->port);
+        printf("listen on %s:%d\n", $this->serverhost, $this->serverport);
     }
 
     /**
@@ -226,7 +229,7 @@ class WebSocketServer extends BaseObject
      * @param $server
      * @param $frame
      */
-    public function onOpen($server, $frame)
+    public function onOpen(\Swoole\WebSocket\Server $server, $frame)
     {
         echo "server: handshake success with fd{$frame->fd}\n";
         echo "server: {$frame->data}\n";
@@ -240,7 +243,7 @@ class WebSocketServer extends BaseObject
      * @param $frame
      * @throws \Exception
      */
-    public function onMessage($server, $frame)
+    public function onMessage(\Swoole\WebSocket\Server $server, $frame)
     {
         if (!($message = json_decode($frame->data, true)))
         {
@@ -284,12 +287,12 @@ class WebSocketServer extends BaseObject
                 RoomMember::set($message['room_id'], $frame->fd, $member);
 
                 // 转发给自己获取在线列表
-                $server->push($frame->fd, $this->singleMessage('list', $frame->fd, $frame->fd,[
+                $this->serverpush($frame->fd, $this->singleMessage('list', $frame->fd, $frame->fd,[
                     'list' => RoomMember::list($message['room_id']),
                 ]));
 
                 // 转播给当前房间的所有客户端
-                $server->task($this->massMessage($message['type'], $frame->fd, [
+                $this->servertask($this->massMessage($message['type'], $frame->fd, [
                     'count' => RoomMember::count($message['room_id']),
                     'member' => $member,
                 ]));
@@ -303,7 +306,7 @@ class WebSocketServer extends BaseObject
                 if($message['to_client_id'] != 'all')
                 {
                     // 私发
-                    $server->push($frame->fd, $this->singleMessage($message['type'], $frame->fd, $message['to_client_id'],[
+                    $this->serverpush($frame->fd, $this->singleMessage($message['type'], $frame->fd, $message['to_client_id'],[
                         'content' => nl2br(htmlspecialchars($message['content'])),
                     ]));
 
@@ -311,7 +314,7 @@ class WebSocketServer extends BaseObject
                 }
 
                 // 广播消息
-                $server->task($this->massMessage($message['type'], $frame->fd, [
+                $this->servertask($this->massMessage($message['type'], $frame->fd, [
                     'content' => nl2br(htmlspecialchars($message['content'])),
                 ]));
 
@@ -321,7 +324,7 @@ class WebSocketServer extends BaseObject
             case 'gift':
 
                 // 广播消息
-                $server->task($this->massMessage($message['type'], $frame->fd, [
+                $this->servertask($this->massMessage($message['type'], $frame->fd, [
                     'gift_id' => $message['gift_id'],
                 ]));
 
@@ -335,7 +338,7 @@ class WebSocketServer extends BaseObject
                     RoomMember::del($room_id, $fd);
 
                     // 推送退出房间
-                    $server->task($this->massMessage($message['type'], $frame->fd, [
+                    $this->servertask($this->massMessage($message['type'], $frame->fd, [
                         'count' => RoomMember::count($room_id),
                     ]));
                 }
@@ -352,7 +355,7 @@ class WebSocketServer extends BaseObject
      * @param $server
      * @param $fd
      */
-    public function onClose($server, $fd)
+    public function onClose(\Swoole\WebSocket\Server $server, $fd)
     {
         echo "client {$fd} closed". PHP_EOL;
 
@@ -362,7 +365,7 @@ class WebSocketServer extends BaseObject
             // 删除
             RoomMember::del($room_id, $fd);
             // 推送退出房间
-            $server->task($this->massMessage('leave', $fd, [
+            $this->servertask($this->massMessage('leave', $fd, [
                 'count' => RoomMember::count($room_id),
             ]));
         }
@@ -376,11 +379,23 @@ class WebSocketServer extends BaseObject
      * @param $from_id
      * @param $data
      */
-    public function onTask($server, $task_id, $from_id, $data)
+    public function onTask(\Swoole\WebSocket\Server $server, $task_id, $from_id, $data)
     {
         echo "新 AsyncTask[id=$task_id]" . PHP_EOL;
 
-        $server->finish($data);
+        try {
+            $handler = $data[0];
+            $params = $data[1] ?? [];
+            list($class, $action) = $handler;
+
+            $obj = new $class();
+            return call_user_func_array([$obj, $action], $params);
+        } catch (Throwable $e) {
+            Yii::$app->errorHandler->handleException($e);
+            return 1;
+        }
+        
+        // $this->serverfinish($data);
     }
 
     /**
@@ -390,7 +405,7 @@ class WebSocketServer extends BaseObject
      * @param $task_id
      * @param $data
      */
-    public function onFinish($server, $task_id, $data)
+    public function onFinish(\Swoole\WebSocket\Server $server, $task_id, $data)
     {
         // 根据 fd 下发房间通知
         $sendData = json_decode($data, true);
@@ -402,7 +417,7 @@ class WebSocketServer extends BaseObject
         foreach ($list as $val)
         {
             $info = json_decode($val, true);
-            $server->push($info['fd'], $data);
+            $this->serverpush($info['fd'], $data);
 
             unset($info);
         }

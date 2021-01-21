@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-19 22:47:02
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-01-19 22:53:35
+ * @Last Modified time: 2021-01-21 01:00:42
  */
 
 namespace diandi\swoole\timer;
@@ -13,7 +13,10 @@ use Throwable;
 use Yii;
 use yii\base\BaseObject;
 use yii\base\InvalidConfigException;
+use diandi\swoole\web\Application;
 use Swoole\Timer as Server;
+use Swoole\Server as BaseServer;
+
 
 /**
  * 定时器
@@ -22,8 +25,7 @@ use Swoole\Timer as Server;
  */
 class TimerServer extends BaseObject
 {
-    use Timer;
-
+  
     /**
      * @var string 监听主机
      */
@@ -74,8 +76,8 @@ class TimerServer extends BaseObject
             throw new InvalidConfigException('The "app" property mus be set.');
         }
 
-        if (!$this->server instanceof Server) {
-            $this->server = new Server($this->host, $this->port, $this->mode, $this->sockType);
+        if (!$this->server instanceof BaseServer) {
+            $this->server = new BaseServer($this->host, $this->port, $this->mode, $this->sockType);
             $this->server->set($this->options);
         }
 
@@ -95,12 +97,14 @@ class TimerServer extends BaseObject
             'start' => [$this, 'onStart'],
             'workerStart' => [$this, 'onWorkerStart'],
             'workerError' => [$this, 'onWorkerError'],
+            'task' => [$this, 'onTask'],
+            'finish' => [$this, 'onFinish'],
             'receive' => [$this, 'onReceive'],
-            'shutdown' => [$this, 'onShutdown'],
             'tick' => [$this, 'onTick'],
             'after' => [$this, 'onAfter'],
             'clear' => [$this, 'onClear'],
             'clearAll' => [$this, 'onClearAll'],
+            'info' => [$this, 'onInfo'],
             'list' => [$this, 'onList'],
             'stats' => [$this, 'onStats'],
             'set' => [$this, 'onSet']
@@ -154,7 +158,7 @@ class TimerServer extends BaseObject
         }
     }
 
-    /**
+     /**
      * 启动服务器
      * @return bool
      */
@@ -165,7 +169,7 @@ class TimerServer extends BaseObject
 
     /**
      * master启动
-     * @param Server $server
+     * @param \Swoole\Http\Server $server
      */
     public function onStart(Server $server)
     {
@@ -174,11 +178,11 @@ class TimerServer extends BaseObject
 
     /**
      * 工作进程启动时实例化框架
-     * @param Server $server
+     * @param \Swoole\Http\Server $server
      * @param int $workerId
      * @throws InvalidConfigException
      */
-    public function onWorkerStart(Server $server, $workerId)
+    public function onWorkerStart(BaseServer $server, $workerId)
     {
         new Application($this->app);
         Yii::$app->set('server', $server);
@@ -187,7 +191,7 @@ class TimerServer extends BaseObject
 
     /**
      * 工作进程异常
-     * @param Server $server
+     * @param \Swoole\Http\Server $server
      * @param $workerId
      * @param $workerPid
      * @param $exitCode
@@ -197,50 +201,85 @@ class TimerServer extends BaseObject
     {
         fprintf(STDERR, "worker error. id=%d pid=%d code=%d signal=%d\n", $workerId, $workerPid, $exitCode, $signal);
     }
+    
+
+    /**
+     * 开启连接
+     *
+     * @param $server
+     * @param $frame
+     */
+    public function onOpen($server, $frame)
+    {
+        echo "server: handshake success with fd{$frame->fd}\n";
+        echo "server: {$frame->data}\n";
+
+        // 验证token进行连接判断
+    }
+
+    public function onReceive(Server $server, $fd, $from_id, $data) {
+        echo "Get Message From Client {$fd}:{$data}\n";
+        // send a task to task worker.
+        $param = array(
+            'fd' => $fd
+        );
+        // start a task
+        $this->server->task(json_encode($param));
+
+        echo "Continue Handle Worker\n";
+    }
+
+    public function onClose(Server $server, $fd) {
+        echo "Client Close.\n";
+    }
+    
+
+
+
+    public function onTick(Server $server, ...$params)
+    {
+      
+    }
+
+    public function onAfter(Server $server, ...$params)
+    {
+      
+    }
+
+    public function onClear(Server $server,$timer_id)
+    {
+        return $this->server->clear($timer_id);
+      
+    }
+
+    public function onClearAll()
+    {
+        return $this->server->clearAll();
+      
+    }
 
     
-    public function onReceive($value='')
+    public function onInfo(Server $server,$timer_id)
     {
+        return $this->server->info($timer_id);
       
     }
+    
 
-    public function onShutdown($value='')
+    public function onList(Server $server)
     {
-      
+        return $this->server->list();
     }
 
-    public function onTick($value='')
+    public function onStats(Server $server)
     {
-      
+        return $this->server->stats();
     }
+    
 
-    public function onAfter($value='')
+    public function onSet(Server $server,$array)
     {
-      
-    }
-
-    public function onClear($value='')
-    {
-      
-    }
-
-    public function onClearAll($value='')
-    {
-      
-    }
-
-    public function onList($value='')
-    {
-      
-    }
-
-    public function onStats($value='')
-    {
-      
-    }
-
-    public function onSet($value='')
-    {
+        return $this->server->set($array);
       
     }
 
