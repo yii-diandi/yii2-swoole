@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-01-21 21:22:08
+ * @Last Modified time: 2021-01-21 22:12:31
  */
  
 namespace diandi\swoole\websocket\server;
@@ -98,7 +98,9 @@ class WebSocketServer extends BaseObject
         }
 
         foreach ($this->events() as $event => $callback) {
-            $this->server->on($event, $callback);
+            if(method_exists($this,'on'.$event)){
+                $this->server->on($event, $callback);
+             }
         }
 
           /************ 测试用可自行删除在别的地方引用 ***************/
@@ -193,7 +195,7 @@ class WebSocketServer extends BaseObject
      */
     public function onStart(\Swoole\WebSocket\Server $server)
     {
-        printf("listen on %s:%d\n", $this->serverhost, $this->serverport);
+        printf("listen on %s:%d\n", $this->host, $this->port);
     }
 
     /**
@@ -287,12 +289,12 @@ class WebSocketServer extends BaseObject
                 RoomMember::set($message['room_id'], $frame->fd, $member);
 
                 // 转发给自己获取在线列表
-                $this->serverpush($frame->fd, $this->singleMessage('list', $frame->fd, $frame->fd,[
+                $this->server->push($frame->fd, $this->singleMessage('list', $frame->fd, $frame->fd,[
                     'list' => RoomMember::list($message['room_id']),
                 ]));
 
                 // 转播给当前房间的所有客户端
-                $this->servertask($this->massMessage($message['type'], $frame->fd, [
+                $this->server->task($this->massMessage($message['type'], $frame->fd, [
                     'count' => RoomMember::count($message['room_id']),
                     'member' => $member,
                 ]));
@@ -306,7 +308,7 @@ class WebSocketServer extends BaseObject
                 if($message['to_client_id'] != 'all')
                 {
                     // 私发
-                    $this->serverpush($frame->fd, $this->singleMessage($message['type'], $frame->fd, $message['to_client_id'],[
+                    $this->server->push($frame->fd, $this->singleMessage($message['type'], $frame->fd, $message['to_client_id'],[
                         'content' => nl2br(htmlspecialchars($message['content'])),
                     ]));
 
@@ -314,7 +316,7 @@ class WebSocketServer extends BaseObject
                 }
 
                 // 广播消息
-                $this->servertask($this->massMessage($message['type'], $frame->fd, [
+                $this->server->task($this->massMessage($message['type'], $frame->fd, [
                     'content' => nl2br(htmlspecialchars($message['content'])),
                 ]));
 
@@ -324,7 +326,7 @@ class WebSocketServer extends BaseObject
             case 'gift':
 
                 // 广播消息
-                $this->servertask($this->massMessage($message['type'], $frame->fd, [
+                $this->server->task($this->massMessage($message['type'], $frame->fd, [
                     'gift_id' => $message['gift_id'],
                 ]));
 
@@ -338,7 +340,7 @@ class WebSocketServer extends BaseObject
                     RoomMember::del($room_id, $fd);
 
                     // 推送退出房间
-                    $this->servertask($this->massMessage($message['type'], $frame->fd, [
+                    $this->server->task($this->massMessage($message['type'], $frame->fd, [
                         'count' => RoomMember::count($room_id),
                     ]));
                 }
@@ -365,7 +367,7 @@ class WebSocketServer extends BaseObject
             // 删除
             RoomMember::del($room_id, $fd);
             // 推送退出房间
-            $this->servertask($this->massMessage('leave', $fd, [
+            $this->server->task($this->massMessage('leave', $fd, [
                 'count' => RoomMember::count($room_id),
             ]));
         }
@@ -395,7 +397,7 @@ class WebSocketServer extends BaseObject
             return 1;
         }
         
-        // $this->serverfinish($data);
+        // $this->server->finish($data);
     }
 
     /**
@@ -417,7 +419,7 @@ class WebSocketServer extends BaseObject
         foreach ($list as $val)
         {
             $info = json_decode($val, true);
-            $this->serverpush($info['fd'], $data);
+            $this->server->push($info['fd'], $data);
 
             unset($info);
         }

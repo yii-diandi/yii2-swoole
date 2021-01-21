@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-01-21 21:56:04
+ * @Last Modified time: 2021-01-21 22:11:29
  */
 
 namespace diandi\swoole\server;
@@ -192,7 +192,7 @@ class BaseServer extends BaseObject
      */
     public function onStart(\Swoole\Server $server)
     {
-        printf("listen on %s:%d\n", $this->serverhost, $this->serverport);
+        printf("listen on %s:%d\n", $this->host, $this->port);
     }
 
     /**
@@ -244,12 +244,12 @@ class BaseServer extends BaseObject
     }
     
     public function onReceive(\Swoole\Server $server, int $fd, int $reactorId, string $data){
-        echo "[#".$this->serverworker_id."]\tClient[$fd]: $data\n";
+        echo "[#".$this->worker_id."]\tClient[$fd]: $data\n";
     }
 
     public function onPacket(\Swoole\Server $server, string $data, array $clientInfo){
         
-        echo "[#onPacket".$this->serverworker_id."]\tClient[$clientInfo]: $data\n";
+        echo "[#onPacket".$this->worker_id."]\tClient[$clientInfo]: $data\n";
         
     }
 

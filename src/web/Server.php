@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-19 22:47:02
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-01-21 21:22:45
+ * @Last Modified time: 2021-01-21 22:12:09
  */
  
 /**
@@ -76,7 +76,9 @@ class Server extends BaseObject
         }
 
         foreach ($this->events() as $event => $callback) {
-            $this->server->on($event, $callback);
+            if(method_exists($this,'on'.$event)){
+                $this->server->on($event, $callback);
+             }
         }
     }
 
@@ -158,7 +160,7 @@ class Server extends BaseObject
      */
     public function onStart(\Swoole\Http\Server $server)
     {
-        printf("listen on %s:%d\n", $this->serverhost, $this->serverport);
+        printf("listen on %s:%d\n", $this->host, $this->port);
     }
 
     /**
