@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-01-21 22:12:31
+ * @Last Modified time: 2021-01-25 10:29:56
  */
  
 namespace diandi\swoole\websocket\server;
@@ -383,21 +383,23 @@ class WebSocketServer extends BaseObject
      */
     public function onTask(\Swoole\WebSocket\Server $server, $task_id, $from_id, $data)
     {
-        echo "新 AsyncTask[id=$task_id]" . PHP_EOL;
+        // $handler = $data[0];
+        // echo "新 AsyncTask[id=$task_id]" . PHP_EOL;        
+        // echo "新 AsyncTask[handler=$data]" . PHP_EOL;
+        // $message = json_decode($data, true);
+        // try {
+        //     $handler = $message['task']['handler'];
+        //     $params = $message['task']['params'] ?? [];
+        //     list($class, $action) = $handler;
 
-        try {
-            $handler = $data[0];
-            $params = $data[1] ?? [];
-            list($class, $action) = $handler;
-
-            $obj = new $class();
-            return call_user_func_array([$obj, $action], $params);
-        } catch (Throwable $e) {
-            Yii::$app->errorHandler->handleException($e);
-            return 1;
-        }
+        //     $obj = new $class();
+        //     return call_user_func_array([$obj, $action], $params);
+        // } catch (Throwable $e) {
+        //     Yii::$app->errorHandler->handleException($e);
+        //     return 1;
+        // }
         
-        // $this->server->finish($data);
+        $this->server->finish($data);
     }
 
     /**
