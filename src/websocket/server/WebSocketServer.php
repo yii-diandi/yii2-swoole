@@ -383,22 +383,6 @@ class WebSocketServer extends BaseObject
      */
     public function onTask(\Swoole\WebSocket\Server $server, $task_id, $from_id, $data)
     {
-        // $handler = $data[0];
-        // echo "新 AsyncTask[id=$task_id]" . PHP_EOL;        
-        // echo "新 AsyncTask[handler=$data]" . PHP_EOL;
-        // $message = json_decode($data, true);
-        // try {
-        //     $handler = $message['task']['handler'];
-        //     $params = $message['task']['params'] ?? [];
-        //     list($class, $action) = $handler;
-
-        //     $obj = new $class();
-        //     return call_user_func_array([$obj, $action], $params);
-        // } catch (Throwable $e) {
-        //     Yii::$app->errorHandler->handleException($e);
-        //     return 1;
-        // }
-        
         $this->server->finish($data);
     }
 
