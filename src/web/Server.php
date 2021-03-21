@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-19 22:47:02
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-01-21 22:12:09
+ * @Last Modified time: 2021-03-22 03:38:13
  */
  
 /**
@@ -57,7 +57,7 @@ class Server extends BaseObject
     /**
      * @var \Swoole\Http\Server swoole server实例
      */
-    public $server;
+    public $webServer;
 
     /**
      * @inheritDoc
@@ -70,14 +70,14 @@ class Server extends BaseObject
             throw new InvalidConfigException('The "app" property mus be set.');
         }
 
-        if (!$this->server instanceof \Swoole\Http\Server) {
-            $this->server = new \Swoole\Http\Server($this->host, $this->port, $this->mode, $this->sockType);
-            $this->server->set($this->options);
+        if (!$this->webServer instanceof \Swoole\Http\Server) {
+            $this->webServer = new \Swoole\Http\Server($this->host, $this->port, $this->mode, $this->sockType);
+            $this->webServer->set($this->options);
         }
 
         foreach ($this->events() as $event => $callback) {
             if(method_exists($this,'on'.$event)){
-                $this->server->on($event, $callback);
+                $this->webServer->on($event, $callback);
              }
         }
     }
@@ -122,7 +122,7 @@ class Server extends BaseObject
                 print_r('Server is already running. Please stop it first.'.PHP_EOL);
                 exit;
             }
-            return $this->server->start();
+            return $this->webServer->start();
         }elseif($command == 'stop'){
             if(!empty($masterPid)){
                 posix_kill($masterPid,SIGTERM);
@@ -151,14 +151,14 @@ class Server extends BaseObject
      */
     public function start()
     {
-        return $this->server->start();
+        return $this->webServer->start();
     }
 
     /**
      * master启动
      * @param \Swoole\Http\Server $server
      */
-    public function onStart(\Swoole\Http\Server $server)
+    public function onStart(\Swoole\Http\Server $webServer)
     {
         printf("listen on %s:%d\n", $this->host, $this->port);
     }
@@ -169,10 +169,10 @@ class Server extends BaseObject
      * @param int $workerId
      * @throws InvalidConfigException
      */
-    public function onWorkerStart(\Swoole\Http\Server $server, $workerId)
+    public function onWorkerStart(\Swoole\Http\Server $webServer, $workerId)
     {
         new Application($this->app);
-        Yii::$app->set('server', $server);
+        Yii::$app->set('server', $webServer);
     }
 
 
@@ -184,7 +184,7 @@ class Server extends BaseObject
      * @param $exitCode
      * @param $signal
      */
-    public function onWorkerError(\Swoole\Http\Server $server, $workerId, $workerPid, $exitCode, $signal)
+    public function onWorkerError(\Swoole\Http\Server $webServer, $workerId, $workerPid, $exitCode, $signal)
     {
         fprintf(STDERR, "worker error. id=%d pid=%d code=%d signal=%d\n", $workerId, $workerPid, $exitCode, $signal);
     }
@@ -210,7 +210,7 @@ class Server extends BaseObject
      * @param $data
      * @return mixed
      */
-    public function onTask(\Swoole\Http\Server $server, $taskId, $workerId, $data)
+    public function onTask(\Swoole\Http\Server $webServer, $taskId, $workerId, $data)
     {
         try {
             $handler = $data[0];
@@ -225,7 +225,7 @@ class Server extends BaseObject
         }
     }
 
-    public function onFinish(\Swoole\Http\Server $server, $taskId, $data)
+    public function onFinish(\Swoole\Http\Server $webServer, $taskId, $data)
     {
         echo "Task#$taskId finished, data_len=" . strlen($data) . PHP_EOL;
     }
