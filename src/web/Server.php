@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-19 22:47:02
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-03-22 04:48:05
+ * @Last Modified time: 2021-03-22 06:10:57
  */
  
 /**
@@ -18,7 +18,6 @@ use Throwable;
 use Yii;
 use yii\base\BaseObject;
 use yii\base\InvalidConfigException;
-
 
 /**
  * Web服务器
@@ -173,7 +172,7 @@ class Server extends BaseObject
     public function onWorkerStart(\Swoole\Http\Server $webServer, $workerId)
     {
         new Application($this->app);
-        Yii::$app->set('webServer', $webServer);
+        Yii::$app->set('server', $webServer);
     }
 
 
@@ -197,8 +196,36 @@ class Server extends BaseObject
      */
     public function onRequest(\Swoole\Http\Request $request, \Swoole\Http\Response $response)
     {
+        global $_GPC;
         Yii::$app->request->setRequest($request);
         Yii::$app->response->setResponse($response);
+       
+        $header = $request->header;
+        $get  = !empty($request->get) && is_array($request->get)?$request->get:[];
+        $post = !empty($request->post) && is_array($request->post)?$request->post:[];
+        $_GPC = array_merge($get,$post);
+        
+        $bloc_id = $header['bloc-id'];
+    
+        $store_id = $header['store-id'];
+        
+        $access_token = $header['access-token'];
+        
+        $addons = $header['addons'];
+        
+        if (empty($access_token)) {
+            $access_token = isset($_GPC['access-token']) ? $_GPC['access-token'] : 0; 
+        }
+        if (empty($bloc_id)) {
+            $bloc_id = isset($_GPC['bloc_id']) ? $_GPC['bloc_id'] : 0; 
+        }
+        if (empty($store_id)) {
+            $store_id = isset($_GPC['store_id']) ? $_GPC['store_id'] : 0;
+        }
+        
+        Yii::$app->service->commonMemberService->setAccessToken($access_token);
+        Yii::$app->service->commonGlobalsService->initId($bloc_id, $store_id, $addons);
+        Yii::$app->service->commonGlobalsService->getConf($bloc_id);
         Yii::$app->run();
         Yii::$app->response->clear();
     }
