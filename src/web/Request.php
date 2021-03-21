@@ -1,12 +1,4 @@
 <?php
-
-/**
- * @Author: Wang chunsheng  email:2192138785@qq.com
- * @Date:   2021-03-22 03:51:40
- * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-03-22 04:15:00
- */
-
 /**
  * @author xialeistudio
  * @date 2019-05-17
