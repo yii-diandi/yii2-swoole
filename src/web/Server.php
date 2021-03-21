@@ -189,6 +189,7 @@ class Server extends BaseObject
         fprintf(STDERR, "worker error. id=%d pid=%d code=%d signal=%d\n", $workerId, $workerPid, $exitCode, $signal);
     }
 
+
     /**
      * 处理请求
      * @param \Swoole\Http\Request $request
