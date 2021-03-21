@@ -1,4 +1,12 @@
 <?php
+
+/**
+ * @Author: Wang chunsheng email:2192138785@qq.com
+ * @Date: 2021-03-22 03:51:40
+ * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
+ * @Last Modified time: 2021-03-22 04:40:02
+ */
+
 /**
  * @author xialeistudio
  * @date 2019-05-17
@@ -52,7 +60,7 @@ class Application extends \yii\web\Application
      * @return \Swoole\Http\Server|mixed
      * @throws InvalidConfigException
      */
-    public function getServer()
+    public function getWebServer()
     {
         return $this->get('server');
     }
