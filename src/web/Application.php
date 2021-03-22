@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-03-22 04:46:55
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-03-22 04:47:39
+ * @Last Modified time: 2021-03-22 22:23:59
  */
 
 /**
@@ -62,6 +62,6 @@ class Application extends \yii\web\Application
      */
     public function getWebServer()
     {
-        return $this->get('server');
+        return $this->get('webServer');
     }
 }
