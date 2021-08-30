@@ -3,14 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-21 01:43:33
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-01-21 01:43:39
- */
- <?php
-/**
- * Created by PhpStorm.
- * User: diandi
- * Date: 2017/9/6
- * Time: 下午2:59
+ * @Last Modified time: 2021-01-25 12:06:39
  */
 
 namespace diandi\swoole\timer;

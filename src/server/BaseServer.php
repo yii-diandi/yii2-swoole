@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-01-21 21:22:23
+ * @Last Modified time: 2021-01-21 23:35:55
  */
 
 namespace diandi\swoole\server;
@@ -82,18 +82,18 @@ class BaseServer extends BaseObject
         
         
         if (!$this->server instanceof \Swoole\Server) {
-            
+              
             $this->server = new \Swoole\Server($this->host,$this->port,$this->mode,$this->sockType);
                
             // 您可以混合使用UDP/TCP，同时监听内网和外网端口，多端口监听参考 addlistener小节。
-            // $this->server->listen("0.0.0.0", 9502, SWOOLE_SOCK_TCP); // 添加 TCP
-            // $this->server->listen("0.0.0.0", 9501, SWOOLE_SOCK_TCP); // 添加 Web Socket
-            $this->server->listen("0.0.0.0", 9503, SWOOLE_SOCK_UDP); // UDP
+            // $this->server->addlistener("0.0.0.0", 9501, SWOOLE_SOCK_UDP); // 添加 TCP
+          // 添加 Web Socket
+            // $this->server->listen("0.0.0.0",$this->port,$this->sockType); // UDP
             // $this->server->addlistener("/var/run/myserv.sock", 0, SWOOLE_UNIX_STREAM); //UnixSocket Stream
-            // $this->server->addlistener("127.0.0.1", 9503, SWOOLE_SOCK_TCP | SWOOLE_SSL); //TCP + SSL
-
+            //  $this->server->addlistener("127.0.0.1", 9503, SWOOLE_SOCK_TCP | SWOOLE_SSL); //TCP + SSL
 
             $this->server->set($this->options);
+
         }
 
         foreach ($this->events() as $event => $callback) {
@@ -192,7 +192,7 @@ class BaseServer extends BaseObject
      */
     public function onStart(\Swoole\Server $server)
     {
-        printf("listen on %s:%d\n", $this->serverhost, $this->serverport);
+        printf("listen on %s:%d\n", $this->host, $this->port);
     }
 
     /**
@@ -206,7 +206,7 @@ class BaseServer extends BaseObject
         global $argv;
         new Application($this->app);
         Yii::$app->set('server', $server);
-        if($workerId >= $this->serversetting['worker_num']) {
+        if($workerId >= $this->options['worker_num']) {
             swoole_set_process_name("php {$argv[0]} task worker");
         } else {
             swoole_set_process_name("php {$argv[0]} event worker");
@@ -244,12 +244,12 @@ class BaseServer extends BaseObject
     }
     
     public function onReceive(\Swoole\Server $server, int $fd, int $reactorId, string $data){
-        echo "[#".$this->serverworker_id."]\tClient[$fd]: $data\n";
+        echo "[#".$this->worker_id."]\tClient[$fd]: $data\n";
     }
 
     public function onPacket(\Swoole\Server $server, string $data, array $clientInfo){
         
-        echo "[#onPacket".$this->serverworker_id."]\tClient[$clientInfo]: $data\n";
+        echo "[#onPacket]\tClient[$clientInfo]: $data\n";
         
     }
 
