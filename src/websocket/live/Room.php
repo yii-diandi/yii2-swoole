@@ -1,11 +1,12 @@
 <?php
+
 /**
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:00
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-01-20 04:37:25
+ * @Last Modified time: 2021-09-01 19:41:32
  */
- 
+
 namespace diandi\swoole\websocket\live;
 
 use Yii;
@@ -54,6 +55,7 @@ class Room extends \yii\redis\ActiveRecord
         return Yii::$app->redis->hdel(self::PREFIX_KEY, $room_id);
     }
 
+
     /**
      * 房间列表
      *
@@ -83,7 +85,6 @@ class Room extends \yii\redis\ActiveRecord
      */
     public static function incr($room_id)
     {
-
     }
 
     /**
@@ -94,6 +95,5 @@ class Room extends \yii\redis\ActiveRecord
      */
     public static function decr($room_id)
     {
-
     }
 }

@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:12
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-08-30 12:15:31
+ * @Last Modified time: 2021-09-01 18:59:32
  */
 
 namespace diandi\swoole\websocket\live;
@@ -23,6 +23,8 @@ class RoomMember
 {
     const PREFIX_ROOM = 'live:room:member:';
 
+    const PREFIX_ROOM_MEM = 'live:room:memberids:';
+
     /**
      * 加入用户
      *
@@ -32,6 +34,7 @@ class RoomMember
      */
     public static function set($room_id, $fd, array $member)
     {
+        Yii::$app->redis->hset(self::PREFIX_ROOM_MEM . $room_id, $fd, $member['member_id']);
         Yii::$app->redis->hset(self::PREFIX_ROOM . $room_id, $fd, json_encode($member));
     }
 
@@ -44,6 +47,7 @@ class RoomMember
      */
     public static function del($room_id, $fd)
     {
+        return Yii::$app->redis->hdel(self::PREFIX_ROOM_MEM . $room_id, $fd);
         return Yii::$app->redis->hdel(self::PREFIX_ROOM . $room_id, $fd);
     }
 
@@ -56,6 +60,18 @@ class RoomMember
     public static function list($room_id)
     {
         return Yii::$app->redis->hvals(self::PREFIX_ROOM . $room_id);
+    }
+
+
+    /**
+     * 用户id列表
+     *
+     * @param $room_id
+     * @return mixed
+     */
+    public static function listIds($room_id)
+    {
+        return Yii::$app->redis->hvals(self::PREFIX_ROOM_MEM . $room_id);
     }
 
     /**
@@ -73,6 +89,7 @@ class RoomMember
      */
     public static function release($room_id)
     {
+        Yii::$app->redis->del(self::PREFIX_ROOM_MEM . $room_id);
         return Yii::$app->redis->del(self::PREFIX_ROOM . $room_id);
     }
 }

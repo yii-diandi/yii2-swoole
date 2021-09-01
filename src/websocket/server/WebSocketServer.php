@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-08-30 19:13:05
+ * @Last Modified time: 2021-09-01 19:40:46
  */
 
 namespace diandi\swoole\websocket\server;
@@ -16,7 +16,6 @@ use diandi\swoole\websocket\live\RoomMap;
 use diandi\swoole\websocket\live\RoomMember;
 use Throwable;
 use yii\base\BaseObject;
-
 
 /**
  * 长连接
@@ -271,22 +270,44 @@ class WebSocketServer extends BaseObject
                 // 进入房间(登录)
             case 'login':
 
+                RoomMember::release($message['room_id']);
                 $member = [
                     'fd' => $frame->fd,
                     'room_id' => $message['room_id'],
                     'member_id' => $message['member']['member_id'],
-                    'nickname' => $message['member']['nickname'],
-                    'head_portrait' => $message['member']['head_portrait'],
+                    'nickname' => $message['member']['nickname'] ? $message['member']['nickname'] : $message['member']['username'],
+                    'head_portrait' => $message['member']['avatarUrl'] ? $message['member']['avatarUrl'] : $message['member']['avatar'],
                 ];
+                $member_ids = RoomMember::listIds($message['room_id']);
+
+                echo "所有用户：" . json_encode($member_ids) . PHP_EOL;
+                // 防止用户重复登录
+                if (in_array($message['member']['member_id'], $member_ids)) {
+                    echo "重复登录：" . $message['member']['member_id'] . PHP_EOL;
+
+                    // 执行离开
+                    $lists = RoomMember::list($message['room_id']);
+                    foreach ($lists as $key => $value) {
+                        $member_one = json_decode($value, true);
+                        if ($member_one['member_id'] == $message['member']['member_id']) {
+                            $fd_one = $member_one['fd'];
+                            if ($room_id = RoomMap::get($fd_one)) {
+                                // 删除
+                                RoomMember::del($room_id, $fd_one);
+                            }
+                        }
+                    }
+                }
 
                 // 加入全部列表
                 RoomMap::set($frame->fd, $message['room_id']);
                 // 加入房间列表
                 RoomMember::set($message['room_id'], $frame->fd, $member);
-                // RoomMember::release($message['room_id']);
+
                 $lists = RoomMember::list($message['room_id']);
                 foreach ($lists as $key => $value) {
-                    $list[] = json_decode($value, true);
+                    $member_one = json_decode($value, true);
+                    $list[] = $member_one;
                 }
 
                 // 转发给自己获取在线列表
@@ -309,7 +330,12 @@ class WebSocketServer extends BaseObject
                 if ($message['to_client_id'] != 'all') {
                     // 私发
                     $this->server->push($message['to_client_id'], $this->singleMessage($message['type'], $frame->fd, $message['to_client_id'], [
-                        'content' => nl2br(htmlspecialchars($message['content'])),
+                        'content' => nl2br(htmlspecialchars($message['content']))
+                    ]));
+
+                    // 转发给自己获取在线列表
+                    $this->server->push($frame->fd, $this->singleMessage('say_res', $frame->fd, $frame->fd, [
+                        'message' => $message,
                     ]));
 
                     return true;
