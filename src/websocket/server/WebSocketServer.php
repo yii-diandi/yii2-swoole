@@ -17,6 +17,7 @@ use diandi\swoole\websocket\live\RoomMember;
 use Throwable;
 use yii\base\BaseObject;
 
+
 /**
  * 长连接
  *
