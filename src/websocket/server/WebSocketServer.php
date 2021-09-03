@@ -4,14 +4,14 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-09-03 15:33:49
+ * @Last Modified time: 2021-09-03 17:10:57
  */
 
 namespace diandi\swoole\websocket\server;
 
 use diandi\swoole\web\Application;
-use diandi\swoole\websocket\events\Mailer;
-use diandi\swoole\websocket\events\MessageEvent;
+use diandi\swoole\websocket\interfaces\WsAuthInterface;
+use diandi\swoole\websocket\interfaces\WsSendInterface;
 use Yii;
 use diandi\swoole\websocket\live\Room;
 use diandi\swoole\websocket\live\RoomMap;
@@ -47,6 +47,16 @@ class WebSocketServer extends BaseObject
 
     public $type = 'ws';
 
+    /**
+     * @var WsAuthInterface
+     */
+    public $wsAuth;
+
+    /**
+     * @var WsSendInterface
+     */
+    public $wsSend;
+
 
     /**
      * @var array 服务器选项
@@ -62,6 +72,8 @@ class WebSocketServer extends BaseObject
         'pid_file' => '',
         'log_file' => '',
         'log_level' => 0,
+        'wsAuth' => null,
+        'wsSend' => null
     ];
     /**
      * @var array 应用配置
@@ -229,6 +241,16 @@ class WebSocketServer extends BaseObject
         echo "server: {$frame->data}\n";
 
         // 验证token进行连接判断
+        if (isset($this->options['wsAuth']) && !$this->wsAuth instanceof WsAuthInterface) {
+            $this->wsAuth = Yii::createObject($this->config['wsAuth']);
+        } else {
+            $this->server->close($frame->fd);
+            return;
+        }
+
+        if (isset($this->options['wsSend']) && !$this->wsSend instanceof WsSendInterface) {
+            $this->wsSend = Yii::createObject($this->options['wsSend']);
+        }
     }
 
     /**
@@ -252,9 +274,9 @@ class WebSocketServer extends BaseObject
         // 输出调试信息
         echo $frame->data . PHP_EOL;
 
-        // 事件处理
-        $Mailer = new Mailer();
-        $Mailer->send($message);
+        if ($this->wsSend instanceof WsSendInterface) {
+            $this->wsSend->onMessage($message);
+        }
 
         // 业务逻辑
         switch ($message['type']) {
