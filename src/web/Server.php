@@ -1,11 +1,12 @@
 <?php
+
 /**
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-19 22:47:02
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-03-22 22:23:37
+ * @Last Modified time: 2021-09-02 18:32:07
  */
- 
+
 /**
  * @author xialeistudio
  * @date 2019-05-17
@@ -76,9 +77,9 @@ class Server extends BaseObject
         }
 
         foreach ($this->events() as $event => $callback) {
-            if(method_exists($this,'on'.$event)){
+            if (method_exists($this, 'on' . $event)) {
                 $this->webServer->on($event, $callback);
-             }
+            }
         }
     }
 
@@ -97,8 +98,8 @@ class Server extends BaseObject
             'finish' => [$this, 'onFinish'],
         ];
     }
-    
-        /**
+
+    /**
      * 服务运行入口
      * @param array $config swoole配置文件
      * @param callable $func 启动回调
@@ -106,40 +107,40 @@ class Server extends BaseObject
     public function run()
     {
         global $argv;
-        if(!isset($argv[0],$argv[1])){
-            print_r("invalid run params,see help,run like:php http-server.php start|stop|reload".PHP_EOL);
+        if (!isset($argv[0], $argv[1])) {
+            print_r("invalid run params,see help,run like:php http-server.php start|stop|reload" . PHP_EOL);
             return;
         }
         $command = $argv[1];
-        
-        
+
+
         $pidFile = $this->options['pid_file'];
-        
-        
+
+
         $masterPid     = file_exists($pidFile) ? file_get_contents($pidFile) : null;
-        if ($command == 'start'){
-            if ($masterPid > 0 and posix_kill($masterPid,0)) {
-                print_r('Server is already running. Please stop it first.'.PHP_EOL);
+        if ($command == 'start') {
+            if ($masterPid > 0 and posix_kill($masterPid, 0)) {
+                print_r('Server is already running. Please stop it first.' . PHP_EOL);
                 exit;
             }
             return $this->webServer->start();
-        }elseif($command == 'stop'){
-            if(!empty($masterPid)){
-                posix_kill($masterPid,SIGTERM);
-                if(PHP_OS=="Darwin"){
+        } elseif ($command == 'stop') {
+            if (!empty($masterPid)) {
+                posix_kill($masterPid, SIGTERM);
+                if (PHP_OS == "Darwin") {
                     //mac下.发送信号量无法触发shutdown.
                     unlink($pidFile);
                 }
-            }else{
-                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGTERM.'.PHP_EOL);
+            } else {
+                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGTERM.' . PHP_EOL);
             }
             exit;
-        }elseif($command == 'reload'){
+        } elseif ($command == 'reload') {
             if (!empty($masterPid)) {
                 posix_kill($masterPid, SIGUSR1); // reload all worker
-//                posix_kill($masterPid, SIGUSR2); // reload all task
+                //                posix_kill($masterPid, SIGUSR2); // reload all task
             } else {
-                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGUSR1.'.PHP_EOL);
+                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGUSR1.' . PHP_EOL);
             }
             exit;
         }
@@ -199,30 +200,30 @@ class Server extends BaseObject
         global $_GPC;
         Yii::$app->request->setRequest($request);
         Yii::$app->response->setResponse($response);
-       
+
         $header = $request->header;
-        $get  = !empty($request->get) && is_array($request->get)?$request->get:[];
-        $post = !empty($request->post) && is_array($request->post)?$request->post:[];
-        $_GPC = array_merge($get,$post);
-        
+        $get  = !empty($request->get) && is_array($request->get) ? $request->get : [];
+        $post = !empty($request->post) && is_array($request->post) ? $request->post : [];
+        $_GPC = array_merge($get, $post);
+
         $bloc_id = $header['bloc-id'];
-    
+
         $store_id = $header['store-id'];
-        
+
         $access_token = $header['access-token'];
-        
+
         $addons = $header['addons'];
-        
+
         if (empty($access_token)) {
-            $access_token = isset($_GPC['access-token']) ? $_GPC['access-token'] : 0; 
+            $access_token = isset($_GPC['access-token']) ? $_GPC['access-token'] : 0;
         }
         if (empty($bloc_id)) {
-            $bloc_id = isset($_GPC['bloc_id']) ? $_GPC['bloc_id'] : 0; 
+            $bloc_id = isset($_GPC['bloc_id']) ? $_GPC['bloc_id'] : 0;
         }
         if (empty($store_id)) {
             $store_id = isset($_GPC['store_id']) ? $_GPC['store_id'] : 0;
         }
-        
+
         Yii::$app->service->commonMemberService->setAccessToken($access_token);
         Yii::$app->service->commonGlobalsService->initId($bloc_id, $store_id, $addons);
         Yii::$app->service->commonGlobalsService->getConf($bloc_id);

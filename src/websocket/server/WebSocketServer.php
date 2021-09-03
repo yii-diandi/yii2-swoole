@@ -4,19 +4,19 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-09-01 19:40:46
+ * @Last Modified time: 2021-09-03 15:30:10
  */
 
 namespace diandi\swoole\websocket\server;
 
 use diandi\swoole\web\Application;
+use diandi\swoole\websocket\events\MessageEvent;
 use Yii;
 use diandi\swoole\websocket\live\Room;
 use diandi\swoole\websocket\live\RoomMap;
 use diandi\swoole\websocket\live\RoomMember;
 use Throwable;
 use yii\base\BaseObject;
-
 
 /**
  * 长连接
@@ -45,6 +45,9 @@ class WebSocketServer extends BaseObject
 
 
     public $type = 'ws';
+
+    // 消息事件
+    const EVENT_MESSAGE_SENT = 'messageSent';
 
     /**
      * @var array 服务器选项
@@ -101,15 +104,6 @@ class WebSocketServer extends BaseObject
                 $this->server->on($event, $callback);
             }
         }
-
-        /************ 测试用可自行删除在别的地方引用 ***************/
-        // 创建房间
-        // Room::set(10001);
-        // // 清理房间用户缓存
-        // RoomMember::release(10001);
-        // // 清理全部用户所在房间列表
-        // RoomMap::release();
-        /************ 测试用可自行删除在别的地方引用 ***************/
     }
 
 
@@ -259,6 +253,11 @@ class WebSocketServer extends BaseObject
         // 输出调试信息
         echo $frame->data . PHP_EOL;
 
+
+        $event = new MessageEvent();
+        $event->message = $message;
+        $this->trigger(self::EVENT_MESSAGE_SENT, $event);
+
         // 业务逻辑
         switch ($message['type']) {
                 // 心跳
@@ -271,7 +270,7 @@ class WebSocketServer extends BaseObject
                 // 进入房间(登录)
             case 'login':
 
-                RoomMember::release($message['room_id']);
+                // RoomMember::release($message['room_id']);
                 $member = [
                     'fd' => $frame->fd,
                     'room_id' => $message['room_id'],
@@ -279,26 +278,6 @@ class WebSocketServer extends BaseObject
                     'nickname' => $message['member']['nickname'] ? $message['member']['nickname'] : $message['member']['username'],
                     'head_portrait' => $message['member']['avatarUrl'] ? $message['member']['avatarUrl'] : $message['member']['avatar'],
                 ];
-                $member_ids = RoomMember::listIds($message['room_id']);
-
-                echo "所有用户：" . json_encode($member_ids) . PHP_EOL;
-                // 防止用户重复登录
-                if (in_array($message['member']['member_id'], $member_ids)) {
-                    echo "重复登录：" . $message['member']['member_id'] . PHP_EOL;
-
-                    // 执行离开
-                    $lists = RoomMember::list($message['room_id']);
-                    foreach ($lists as $key => $value) {
-                        $member_one = json_decode($value, true);
-                        if ($member_one['member_id'] == $message['member']['member_id']) {
-                            $fd_one = $member_one['fd'];
-                            if ($room_id = RoomMap::get($fd_one)) {
-                                // 删除
-                                RoomMember::del($room_id, $fd_one);
-                            }
-                        }
-                    }
-                }
 
                 // 加入全部列表
                 RoomMap::set($frame->fd, $message['room_id']);
@@ -308,12 +287,15 @@ class WebSocketServer extends BaseObject
                 $lists = RoomMember::list($message['room_id']);
                 foreach ($lists as $key => $value) {
                     $member_one = json_decode($value, true);
-                    $list[] = $member_one;
+                    // 返回除了自己的
+                    if ($member_one['member_id'] != $member['member_id']) {
+                        $list[] = $member_one;
+                    }
                 }
 
                 // 转发给自己获取在线列表
-                $this->server->push($frame->fd, $this->singleMessage('list', $frame->fd, $frame->fd, [
-                    'list' => $list,
+                $this->server->push($frame->fd, $this->singleMessage('login_res', $frame->fd, $frame->fd, [
+                    'list' => $list
                 ]));
 
                 // 转播给当前房间的所有客户端
@@ -329,14 +311,22 @@ class WebSocketServer extends BaseObject
 
                 // 私聊
                 if ($message['to_client_id'] != 'all') {
+
+                    $frommember = RoomMember::get($message['room_id'], $message['from_client_id']);
+
                     // 私发
                     $this->server->push($message['to_client_id'], $this->singleMessage($message['type'], $frame->fd, $message['to_client_id'], [
-                        'content' => nl2br(htmlspecialchars($message['content']))
+                        'content' => nl2br(htmlspecialchars($message['content'])),
+                        'from_member' => json_decode($frommember, true)
+
                     ]));
 
-                    // 转发给自己获取在线列表
+                    $tomember = RoomMember::get($message['room_id'], $message['to_client_id']);
+
+                    // 转发给自己内容发送成功
                     $this->server->push($frame->fd, $this->singleMessage('say_res', $frame->fd, $frame->fd, [
                         'message' => $message,
+                        'to_member' => json_decode($tomember, true)
                     ]));
 
                     return true;
@@ -361,6 +351,7 @@ class WebSocketServer extends BaseObject
                 // 离开房间
             case 'leave':
                 $fd = $message['fd'];
+
                 if ($room_id = RoomMap::get($fd)) {
                     // 删除
                     RoomMember::del($room_id, $fd);
@@ -368,6 +359,11 @@ class WebSocketServer extends BaseObject
                     // 推送退出房间
                     $this->server->task($this->massMessage($message['type'], $frame->fd, [
                         'count' => RoomMember::count($room_id),
+                    ]));
+
+                    // 转发给自己退出成功
+                    $this->server->push($frame->fd, $this->singleMessage('leave_res', $frame->fd, $frame->fd, [
+                        'message' => $message,
                     ]));
                 }
 
