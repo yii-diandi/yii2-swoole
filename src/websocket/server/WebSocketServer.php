@@ -4,12 +4,13 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-09-03 15:30:10
+ * @Last Modified time: 2021-09-03 15:33:49
  */
 
 namespace diandi\swoole\websocket\server;
 
 use diandi\swoole\web\Application;
+use diandi\swoole\websocket\events\Mailer;
 use diandi\swoole\websocket\events\MessageEvent;
 use Yii;
 use diandi\swoole\websocket\live\Room;
@@ -46,8 +47,6 @@ class WebSocketServer extends BaseObject
 
     public $type = 'ws';
 
-    // 消息事件
-    const EVENT_MESSAGE_SENT = 'messageSent';
 
     /**
      * @var array 服务器选项
@@ -253,10 +252,9 @@ class WebSocketServer extends BaseObject
         // 输出调试信息
         echo $frame->data . PHP_EOL;
 
-
-        $event = new MessageEvent();
-        $event->message = $message;
-        $this->trigger(self::EVENT_MESSAGE_SENT, $event);
+        // 事件处理
+        $Mailer = new Mailer();
+        $Mailer->send($message);
 
         // 业务逻辑
         switch ($message['type']) {
