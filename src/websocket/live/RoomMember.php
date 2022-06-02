@@ -1,11 +1,12 @@
 <?php
+
 /**
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:12
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-01-20 04:37:03
+ * @Last Modified time: 2021-09-02 17:59:57
  */
- 
+
 namespace diandi\swoole\websocket\live;
 
 use Yii;
@@ -44,6 +45,15 @@ class RoomMember
     public static function del($room_id, $fd)
     {
         return Yii::$app->redis->hdel(self::PREFIX_ROOM . $room_id, $fd);
+    }
+
+    /**
+     * @param $fd
+     * @return mixed
+     */
+    public static function get($room_id, $fd)
+    {
+        return Yii::$app->redis->hget(self::PREFIX_ROOM . $room_id, $fd);
     }
 
     /**
