@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-06-02 17:09:38
+ * @Last Modified time: 2022-06-05 11:35:25
  */
 
 namespace diandi\swoole\server;
@@ -244,11 +244,6 @@ class BaseServer extends Component
     public function onConnect(\Swoole\Server $server, int $fd, int $reactorId)
     {
         echo '链接成功';
-        $event = new BaseServerEvent([
-            'fd' => $fd,
-            'reactorId' =>$reactorId,
-        ]);
-        $this->trigger('tcp_connect', $event);
     }
 
     public function onReceive(\Swoole\Server $server, int $fd, int $reactorId, string $data)
