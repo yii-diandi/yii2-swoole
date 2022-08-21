@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-19 22:47:02
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-09-02 18:32:07
+ * @Last Modified time: 2022-08-17 10:14:51
  */
 
 /**
@@ -59,6 +59,9 @@ class Server extends BaseObject
      * @var \Swoole\Http\Server swoole server实例
      */
     public $webServer;
+
+    
+    public $process;
 
     /**
      * @inheritDoc
@@ -161,6 +164,7 @@ class Server extends BaseObject
      */
     public function onStart(\Swoole\Http\Server $webServer)
     {
+        @swoole_set_process_name("ddicms-webServer");
         printf("listen on %s:%d\n", $this->host, $this->port);
     }
 
@@ -172,6 +176,7 @@ class Server extends BaseObject
      */
     public function onWorkerStart(\Swoole\Http\Server $webServer, $workerId)
     {
+        @swoole_set_process_name("ddicms-webServer");
         new Application($this->app);
         Yii::$app->set('webServer', $webServer);
     }

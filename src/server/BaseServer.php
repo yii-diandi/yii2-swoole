@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-06-05 11:35:25
+ * @Last Modified time: 2022-08-21 22:52:23
  */
 
 namespace diandi\swoole\server;
@@ -208,9 +208,9 @@ class BaseServer extends Component
         new Application($this->app);
         Yii::$app->set('server', $server);
         if ($workerId >= $this->options['worker_num']) {
-            swoole_set_process_name("php {$argv[0]} task worker");
+            @swoole_set_process_name("php {$argv[0]} task worker");
         } else {
-            swoole_set_process_name("php {$argv[0]} event worker");
+            @swoole_set_process_name("php {$argv[0]} event worker");
         }
     }
 

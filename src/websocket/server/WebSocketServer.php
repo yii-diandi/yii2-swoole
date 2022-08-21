@@ -4,26 +4,23 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2021-09-03 15:33:49
+ * @Last Modified time: 2022-08-17 14:43:57
  */
 
 namespace diandi\swoole\websocket\server;
 
 use diandi\swoole\web\Application;
 use diandi\swoole\websocket\events\Mailer;
-use diandi\swoole\websocket\events\MessageEvent;
-use Yii;
 use diandi\swoole\websocket\live\Room;
 use diandi\swoole\websocket\live\RoomMap;
 use diandi\swoole\websocket\live\RoomMember;
-use Throwable;
+use Yii;
 use yii\base\BaseObject;
 
 /**
- * 长连接
+ * 长连接.
  *
  * Class WebSocketServer
- * @package console\controllers
  */
 class WebSocketServer extends BaseObject
 {
@@ -44,9 +41,7 @@ class WebSocketServer extends BaseObject
      */
     public $sockType = SWOOLE_SOCK_TCP;
 
-
     public $type = 'ws';
-
 
     /**
      * @var array 服务器选项
@@ -72,9 +67,9 @@ class WebSocketServer extends BaseObject
      */
     public $server;
 
-
     /**
-     * @inheritDoc
+     * {@inheritdoc}
+     *
      * @throws InvalidConfigException
      */
     public function init()
@@ -84,62 +79,61 @@ class WebSocketServer extends BaseObject
             throw new InvalidConfigException('The "app" property mus be set.');
         }
 
-
         if (!$this->server instanceof \Swoole\WebSocket\Server) {
-
             if ($this->type == 'ws') {
                 $this->server = new \Swoole\WebSocket\Server($this->host, $this->port, $this->mode, $this->sockType);
             } else {
                 $this->server = new \Swoole\WebSocket\Server($this->host, $this->port, $this->mode, $this->sockType | SWOOLE_SSL);
             }
 
-
-
             $this->server->set($this->options);
+
+            $serv = $this->server->addlistener('0.0.0.0', 9503, SWOOLE_SOCK_TCP);
+            $serv->set([]);
+            $serv->on('receive', [$this, 'onReceive']);
+
+            $this->serverMonitor($this->server);
         }
 
         foreach ($this->events() as $event => $callback) {
-            if (method_exists($this, 'on' . $event)) {
+            if (method_exists($this, 'on'.$event)) {
                 $this->server->on($event, $callback);
             }
         }
     }
 
-
     /**
-     * 服务运行入口
-     * @param array $config swoole配置文件
-     * @param callable $func 启动回调
+     * 服务运行入口.
      */
     public function run()
     {
         global $argv;
         if (!isset($argv[0], $argv[1])) {
-            print_r("invalid run params,see help,run like:php http-server.php start|stop|reload" . PHP_EOL);
+            print_r('invalid run params,see help,run like:php http-server.php start|stop|reload'.PHP_EOL);
+
             return;
         }
         $command = $argv[1];
 
-
         $pidFile = $this->options['pid_file'];
 
-
-        $masterPid     = file_exists($pidFile) ? file_get_contents($pidFile) : null;
+        $masterPid = file_exists($pidFile) ? file_get_contents($pidFile) : null;
         if ($command == 'start') {
             if ($masterPid > 0 and posix_kill($masterPid, 0)) {
-                print_r('Server is already running. Please stop it first.' . PHP_EOL);
+                print_r('Server is already running. Please stop it first.'.PHP_EOL);
                 exit;
             }
+
             return $this->server->start();
         } elseif ($command == 'stop') {
             if (!empty($masterPid)) {
                 posix_kill($masterPid, SIGTERM);
-                if (PHP_OS == "Darwin") {
+                if (PHP_OS == 'Darwin') {
                     //mac下.发送信号量无法触发shutdown.
                     unlink($pidFile);
                 }
             } else {
-                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGTERM.' . PHP_EOL);
+                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGTERM.'.PHP_EOL);
             }
             exit;
         } elseif ($command == 'reload') {
@@ -147,15 +141,15 @@ class WebSocketServer extends BaseObject
                 posix_kill($masterPid, SIGUSR1); // reload all worker
                 //                posix_kill($masterPid, SIGUSR2); // reload all task
             } else {
-                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGUSR1.' . PHP_EOL);
+                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGUSR1.'.PHP_EOL);
             }
             exit;
         }
     }
 
-
     /**
-     * 事件监听
+     * 事件监听.
+     *
      * @return array
      */
     public function events()
@@ -173,7 +167,8 @@ class WebSocketServer extends BaseObject
     }
 
     /**
-     * 启动服务器
+     * 启动服务器.
+     *
      * @return bool
      */
     public function start()
@@ -182,7 +177,8 @@ class WebSocketServer extends BaseObject
     }
 
     /**
-     * master启动
+     * master启动.
+     *
      * @param \Swoole\Http\Server $server
      */
     public function onStart(\Swoole\WebSocket\Server $server)
@@ -191,9 +187,11 @@ class WebSocketServer extends BaseObject
     }
 
     /**
-     * 工作进程启动时实例化框架
+     * 工作进程启动时实例化框架.
+     *
      * @param \Swoole\Http\Server $server
-     * @param int $workerId
+     * @param int                 $workerId
+     *
      * @throws InvalidConfigException
      */
     public function onWorkerStart(\Swoole\WebSocket\Server $server, $workerId)
@@ -202,9 +200,9 @@ class WebSocketServer extends BaseObject
         Yii::$app->set('server', $server);
     }
 
-
     /**
-     * 工作进程异常
+     * 工作进程异常.
+     *
      * @param \Swoole\Http\Server $server
      * @param $workerId
      * @param $workerPid
@@ -216,9 +214,8 @@ class WebSocketServer extends BaseObject
         fprintf(STDERR, "worker error. id=%d pid=%d code=%d signal=%d\n", $workerId, $workerPid, $exitCode, $signal);
     }
 
-
     /**
-     * 开启连接
+     * 开启连接.
      *
      * @param $server
      * @param $frame
@@ -232,15 +229,56 @@ class WebSocketServer extends BaseObject
     }
 
     /**
-     * 消息
+     * 多监听一个TCP端口，对外开启TCP服务，并设置TCP服务器的回调.
+     *
+     * @return [type] [description]
+     */
+    public function serverMonitor($server)
+    {
+        $serverData = $server->listen('0.0.0.0', 9503, SWOOLE_SOCK_TCP);
+        //需要调用 set 方法覆盖主服务器的设置
+        $serverData->set([]);
+
+        $serverData->on('receive', function ($server, $fd, $threadId, $data) {
+            if (!$data) {
+                return true;
+            }
+            echo $data;
+        });
+    }
+
+    /**tcp接收数据回调
+     * @param $serv
+     * @param $fd
+     * @param $threadId
+     * @param $data
+     */
+    public function onReceive($serv, $fd, $threadId, $data)
+    {
+        $data = json_decode($data, true);
+        $device_id = $data['device_id'] ?? null;
+        $device_fd = $data['device_fd'] ?? null;
+        $device_cmd = $data['device_cmd'] ?? null;
+
+        //发送到设备数据
+        if ($device_fd) {
+            $serv->send($device_fd, $device_cmd);
+        }
+    }
+
+    /**
+     * 消息.
+     *
      * @param $server
      * @param $frame
+     *
      * @throws \Exception
      */
     public function onMessage(\Swoole\WebSocket\Server $server, $frame)
     {
         if (!($message = json_decode($frame->data, true))) {
-            echo "没有消息内容" . PHP_EOL;
+            echo '没有消息内容'.PHP_EOL;
+
             return true;
         }
 
@@ -250,7 +288,7 @@ class WebSocketServer extends BaseObject
         }
 
         // 输出调试信息
-        echo $frame->data . PHP_EOL;
+        echo $frame->data.PHP_EOL;
 
         // 事件处理
         $Mailer = new Mailer();
@@ -293,7 +331,7 @@ class WebSocketServer extends BaseObject
 
                 // 转发给自己获取在线列表
                 $this->server->push($frame->fd, $this->singleMessage('login_res', $frame->fd, $frame->fd, [
-                    'list' => $list
+                    'list' => $list,
                 ]));
 
                 // 转播给当前房间的所有客户端
@@ -309,14 +347,12 @@ class WebSocketServer extends BaseObject
 
                 // 私聊
                 if ($message['to_client_id'] != 'all') {
-
                     $frommember = RoomMember::get($message['room_id'], $message['from_client_id']);
 
                     // 私发
                     $this->server->push($message['to_client_id'], $this->singleMessage($message['type'], $frame->fd, $message['to_client_id'], [
                         'content' => nl2br(htmlspecialchars($message['content'])),
-                        'from_member' => json_decode($frommember, true)
-
+                        'from_member' => json_decode($frommember, true),
                     ]));
 
                     $tomember = RoomMember::get($message['room_id'], $message['to_client_id']);
@@ -324,7 +360,7 @@ class WebSocketServer extends BaseObject
                     // 转发给自己内容发送成功
                     $this->server->push($frame->fd, $this->singleMessage('say_res', $frame->fd, $frame->fd, [
                         'message' => $message,
-                        'to_member' => json_decode($tomember, true)
+                        'to_member' => json_decode($tomember, true),
                     ]));
 
                     return true;
@@ -372,14 +408,14 @@ class WebSocketServer extends BaseObject
     }
 
     /**
-     * 关闭连接
+     * 关闭连接.
      *
      * @param $server
      * @param $fd
      */
     public function onClose(\Swoole\WebSocket\Server $server, $fd)
     {
-        echo "client {$fd} closed" . PHP_EOL;
+        echo "client {$fd} closed".PHP_EOL;
 
         // 验证是否进入房间，如果有退出房间列表
         if ($room_id = RoomMap::get($fd)) {
@@ -406,7 +442,7 @@ class WebSocketServer extends BaseObject
     }
 
     /**
-     * 处理异步任务的结果
+     * 处理异步任务的结果.
      *
      * @param $server
      * @param $task_id
@@ -428,15 +464,15 @@ class WebSocketServer extends BaseObject
             unset($info);
         }
 
-        echo "AsyncTask[$task_id] 完成: $data" . PHP_EOL;
+        echo "AsyncTask[$task_id] 完成: $data".PHP_EOL;
     }
 
     /**
-     * 群发消息
+     * 群发消息.
      *
      * @param $type
      * @param $from_client_id
-     * @param array $otherArr
+     *
      * @return string
      */
     protected function massMessage($type, $from_client_id, array $otherArr = [])
@@ -452,12 +488,12 @@ class WebSocketServer extends BaseObject
     }
 
     /**
-     * 单发消息
+     * 单发消息.
      *
      * @param $type
      * @param $from_client_id
      * @param $to_client_id
-     * @param array $otherArr
+     *
      * @return string
      */
     protected function singleMessage($type, $from_client_id, $to_client_id, array $otherArr = [])
