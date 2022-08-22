@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2022-06-02 17:13:12
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-16 11:13:27
+ * @Last Modified time: 2022-08-22 15:49:59
  */
 
 /**
@@ -18,6 +18,7 @@ use Exception;
 use Throwable;
 use Yii;
 use yii\base\ErrorException;
+use yii\base\ExitException;
 use yii\base\InvalidRouteException;
 use yii\base\UserException;
 use yii\console\Controller;
@@ -38,23 +39,31 @@ class ErrorHandler extends \yii\web\ErrorHandler
      */
     public function handleException($exception)
     {
-        $this->exception = $exception;
-        try {
-            $this->logException($exception);
-            if ($this->discardExistingOutput) {
-                $this->clearOutput();
-            }
-            $this->renderException($exception);
-            if (!YII_ENV_TEST) {
-                Yii::getLogger()->flush(true);
-            }
-        } catch (Exception $e) {
-            // an other exception could be thrown while displaying the exception
-            $this->handleFallbackExceptionMessage($e, $exception);
-        } catch (Throwable $e) {
-            // additional check for \Throwable introduced in PHP 7
-            $this->handleFallbackExceptionMessage($e, $exception);
+        if ($exception instanceof ExitException) {
+            return;
         }
+
+        $this->exception = $exception;
+
+        \Swoole\Coroutine::create(function () use ($exception) {
+            try {
+                $this->logException($exception);
+                if ($this->discardExistingOutput) {
+                    $this->clearOutput();
+                }
+                $this->renderException($exception);
+                throw new \RuntimeException(__FILE__, __LINE__);
+            } catch (\Exception $e) {
+                // an other exception could be thrown while displaying the exception
+                $this->handleFallbackExceptionMessage($e, $exception);
+            } catch (\Throwable $e) {
+                // additional check for \Throwable introduced in PHP 7
+                $this->handleFallbackExceptionMessage($e, $exception);
+            }
+            
+        });
+
+      
 
         $this->exception = null;
     }

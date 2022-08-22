@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2022-06-02 17:13:12
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-16 11:13:16
+ * @Last Modified time: 2022-08-22 17:07:54
  */
 
 /**
@@ -13,6 +13,8 @@
 
 namespace diandi\swoole\web;
 
+use common\helpers\ResultHelper;
+use swooleService\models\SwooleAccessToken;
 use Yii;
 use yii\base\InvalidConfigException;
 
@@ -27,6 +29,12 @@ class Response extends \yii\web\Response
      * @var \Swoole\Http\Response
      */
     private $_response;
+    
+    public $content;
+    
+    public $fd;
+
+    
 
     /**
      * @return \Swoole\Http\Response
@@ -60,6 +68,50 @@ class Response extends \yii\web\Response
         $this->sendCookies();
     }
 
+    
+
+    public function detach()
+    {
+        return $this->_response->detach();
+    }
+
+
+    public function isWritable()
+    {
+        return $this->_response->isWritable();
+    }
+
+    public function checkAccess($response)
+    {
+        // 验证头部是否传递了access-token
+   
+        // $SwooleAccessToken = new SwooleAccessToken();
+        // if(empty($headers['access-token'])){
+        //     ResultHelper::httpJson(401,'access-token不能为空');
+        //     return false;
+        // }
+
+        // if(empty($headers['store-id'])){
+        //     ResultHelper::httpJson(401,'store_id不能为空');
+        //     return false;
+        // }
+
+        // if(empty($headers['access-token'])){
+        //     ResultHelper::httpJson(401,'access-token不能为空');
+        //     return false;
+        // }
+        
+        // $swooleMember = $SwooleAccessToken::findIdentityByAccessToken($headers['access-token']);
+
+        // if(key_exists('code',$swooleMember)){
+        //     $this->content = json_encode(['code'=>$swooleMember['code'],'message'=>$swooleMember['message']]);
+        //     $this->sendContent();
+        //     return false;
+        // }
+
+        return true;
+    }
+
     /**
      * @inheritDoc
      * @throws InvalidConfigException
@@ -67,7 +119,7 @@ class Response extends \yii\web\Response
     protected function sendCookies()
     {
         if ($this->getCookies() === null) {
-            return;
+            return [];
         }
         $request = Yii::$app->getRequest();
         if ($request->enableCookieValidation) {
@@ -89,7 +141,7 @@ class Response extends \yii\web\Response
     /**
      * @inheritDoc
      */
-    protected function sendContent()
+    public function sendContent()
     {
         if ($this->stream === null) {
             $this->_response->end($this->content);
@@ -118,4 +170,23 @@ class Response extends \yii\web\Response
         }
         $this->_response->end();
     }
+
+    
+    /**
+     * Sends the response to the client.
+     */
+    public function send()
+    {
+        if ($this->isSent) {
+            return;
+        }
+        $this->trigger(self::EVENT_BEFORE_SEND);
+        $this->prepare();
+        $this->trigger(self::EVENT_AFTER_PREPARE);
+        $this->sendHeaders();
+        $this->sendContent();
+        $this->trigger(self::EVENT_AFTER_SEND);
+        $this->isSent = true;
+    }
+    
 }

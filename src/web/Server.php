@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-19 22:47:02
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-17 10:14:51
+ * @Last Modified time: 2022-08-22 17:22:04
  */
 
 /**
@@ -14,6 +14,8 @@
 
 namespace diandi\swoole\web;
 
+use common\helpers\ResultHelper;
+use diandi\swoole\coroutine\Context;
 use Exception;
 use Throwable;
 use Yii;
@@ -49,7 +51,7 @@ class Server extends BaseObject
     public $options = [
         'worker_num' => 2,
         'daemonize' => 0,
-        'task_worker_num' => 2
+        'task_worker_num' => 2,
     ];
     /**
      * @var array 应用配置
@@ -60,7 +62,16 @@ class Server extends BaseObject
      */
     public $webServer;
 
-    
+    /**
+     * 请求上下文
+     * @var [type]
+     * @date 2022-08-22
+     * @example
+     * @author Wang Chunsheng
+     * @since
+     */
+    public $context;
+
     public $process;
 
     /**
@@ -95,6 +106,7 @@ class Server extends BaseObject
         return [
             'start' => [$this, 'onStart'],
             'workerStart' => [$this, 'onWorkerStart'],
+            'workerStop' => [$this, 'onWorkerStop'],
             'workerError' => [$this, 'onWorkerError'],
             'request' => [$this, 'onRequest'],
             'task' => [$this, 'onTask'],
@@ -116,11 +128,9 @@ class Server extends BaseObject
         }
         $command = $argv[1];
 
-
         $pidFile = $this->options['pid_file'];
 
-
-        $masterPid     = file_exists($pidFile) ? file_get_contents($pidFile) : null;
+        $masterPid = file_exists($pidFile) ? file_get_contents($pidFile) : null;
         if ($command == 'start') {
             if ($masterPid > 0 and posix_kill($masterPid, 0)) {
                 print_r('Server is already running. Please stop it first.' . PHP_EOL);
@@ -181,6 +191,10 @@ class Server extends BaseObject
         Yii::$app->set('webServer', $webServer);
     }
 
+    public function onWorkerStop(\Swoole\Http\Server $webServer, $workerId)
+    {
+        echo 'onWorkerStop';
+    }
 
     /**
      * 工作进程异常
@@ -206,34 +220,21 @@ class Server extends BaseObject
         Yii::$app->request->setRequest($request);
         Yii::$app->response->setResponse($response);
 
-        $header = $request->header;
-        $get  = !empty($request->get) && is_array($request->get) ? $request->get : [];
-        $post = !empty($request->post) && is_array($request->post) ? $request->post : [];
-        $_GPC = array_merge($get, $post);
+        // list($controller, $action) = explode('/', trim($request->server['request_uri'], '/'));
 
-        $bloc_id = $header['bloc-id'];
+        // print_r($controller, $action);
 
-        $store_id = $header['store-id'];
+        // //根据 $controller, $action 映射到不同的控制器类和方法
+        // (new $controller)->$action($request, $response);
+        
 
-        $access_token = $header['access-token'];
+        // var_dump($response->isWritable()); // false
+        // $response->setStatusCode(403);
 
-        $addons = $header['addons'];
-
-        if (empty($access_token)) {
-            $access_token = isset($_GPC['access-token']) ? $_GPC['access-token'] : 0;
+        if(Yii::$app->response->checkAccess($response)){
+            Yii::$app->run();
+            Yii::$app->response->clear();
         }
-        if (empty($bloc_id)) {
-            $bloc_id = isset($_GPC['bloc_id']) ? $_GPC['bloc_id'] : 0;
-        }
-        if (empty($store_id)) {
-            $store_id = isset($_GPC['store_id']) ? $_GPC['store_id'] : 0;
-        }
-
-        Yii::$app->service->commonMemberService->setAccessToken($access_token);
-        Yii::$app->service->commonGlobalsService->initId($bloc_id, $store_id, $addons);
-        Yii::$app->service->commonGlobalsService->getConf($bloc_id);
-        Yii::$app->run();
-        Yii::$app->response->clear();
     }
 
     /**
