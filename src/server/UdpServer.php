@@ -11,7 +11,7 @@ namespace diandi\swoole\server;
 class UdpServer extends BaseServer
 {
      /**
-     * @var int SOCKET类型
+     * @var int SOCKET类型-udp
      */
     public $sockType = SWOOLE_SOCK_UDP;
 }
