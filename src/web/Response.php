@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2022-06-02 17:13:12
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-22 17:07:54
+ * @Last Modified time: 2022-08-24 21:43:22
  */
 
 /**
@@ -64,7 +64,7 @@ class Response extends \yii\web\Response
                 $this->_response->header($name, $value);
             }
         }
-        $this->_response->status($this->getStatusCode());
+        // $this->_response->status($this->getStatusCode());
         $this->sendCookies();
     }
 
