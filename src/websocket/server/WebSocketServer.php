@@ -4,11 +4,12 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-17 14:43:57
+ * @Last Modified time: 2022-08-27 18:25:44
  */
 
 namespace diandi\swoole\websocket\server;
 
+use common\helpers\loggingHelper;
 use diandi\swoole\web\Application;
 use diandi\swoole\websocket\events\Mailer;
 use diandi\swoole\websocket\live\Room;
@@ -87,12 +88,6 @@ class WebSocketServer extends BaseObject
             }
 
             $this->server->set($this->options);
-
-            $serv = $this->server->addlistener('0.0.0.0', 9503, SWOOLE_SOCK_TCP);
-            $serv->set([]);
-            $serv->on('receive', [$this, 'onReceive']);
-
-            $this->serverMonitor($this->server);
         }
 
         foreach ($this->events() as $event => $callback) {
@@ -229,44 +224,6 @@ class WebSocketServer extends BaseObject
     }
 
     /**
-     * 多监听一个TCP端口，对外开启TCP服务，并设置TCP服务器的回调.
-     *
-     * @return [type] [description]
-     */
-    public function serverMonitor($server)
-    {
-        $serverData = $server->listen('0.0.0.0', 9503, SWOOLE_SOCK_TCP);
-        //需要调用 set 方法覆盖主服务器的设置
-        $serverData->set([]);
-
-        $serverData->on('receive', function ($server, $fd, $threadId, $data) {
-            if (!$data) {
-                return true;
-            }
-            echo $data;
-        });
-    }
-
-    /**tcp接收数据回调
-     * @param $serv
-     * @param $fd
-     * @param $threadId
-     * @param $data
-     */
-    public function onReceive($serv, $fd, $threadId, $data)
-    {
-        $data = json_decode($data, true);
-        $device_id = $data['device_id'] ?? null;
-        $device_fd = $data['device_fd'] ?? null;
-        $device_cmd = $data['device_cmd'] ?? null;
-
-        //发送到设备数据
-        if ($device_fd) {
-            $serv->send($device_fd, $device_cmd);
-        }
-    }
-
-    /**
      * 消息.
      *
      * @param $server
@@ -276,9 +233,10 @@ class WebSocketServer extends BaseObject
      */
     public function onMessage(\Swoole\WebSocket\Server $server, $frame)
     {
+        echo '没有消息内容'.$frame->data.PHP_EOL;
+        loggingHelper::writeLog('asdasdasd','sdfsfs','不不不',[]);
         if (!($message = json_decode($frame->data, true))) {
             echo '没有消息内容'.PHP_EOL;
-
             return true;
         }
 
