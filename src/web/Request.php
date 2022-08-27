@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2022-06-02 17:13:12
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-27 14:20:34
+ * @Last Modified time: 2022-08-27 15:27:45
  */
 
 /**
@@ -13,8 +13,10 @@
 
 namespace diandi\swoole\web;
 
+use diandi\swoole\coroutine\Context;
 use Yii;
 use yii\base\InvalidConfigException;
+use yii\di\Container;
 use yii\web\Cookie;
 
 /**
@@ -54,8 +56,29 @@ class Request extends \yii\web\Request
     public function setRequest($request)
     {
         $this->_request = $request;
+        $this->setContext();
         $this->setupHeaders();
         $this->setupGlobalVars();
+    }
+
+    /**
+     * 设置上下文
+     * @return void
+     * @date 2022-08-27
+     * @example
+     * @author Wang Chunsheng
+     * @since
+     */
+    public function setContext()
+    {
+        // 上下文注入
+        $container = new Container();
+        $container->set('context',[
+            'class'=>'diandi\swoole\coroutine\Context'
+        ]);
+        Yii::$app->context = $container->get('context');
+        Yii::$app->context->setContextDataByKey(Context::COROUTINE_CONTAINER, new Container());
+        Yii::$app->context->setContextDataByKey(Context::COROUTINE_APP,Yii::$app);
     }
 
     /**
@@ -197,5 +220,17 @@ class Request extends \yii\web\Request
             Yii::$app->service->commonGlobalsService->initId($bloc_id, $store_id, $addons);
             Yii::$app->service->commonGlobalsService->getConf($bloc_id);
         }
+    }
+
+       /**
+     * To flush log
+     * To destroy context
+     */
+    public function onEndRequest()
+    {
+        Yii::getLogger()->flush();
+        Yii::getLogger()->flush(true);
+        Yii::$app->response->clear();
+        Yii::$app->context->destory();
     }
 }

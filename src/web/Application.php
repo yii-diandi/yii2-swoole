@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-03-22 04:46:55
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-27 12:49:18
+ * @Last Modified time: 2022-08-27 15:21:38
  */
 
 /**
@@ -31,6 +31,8 @@ class Application extends \yii\web\Application
      * @var string 任务处理器命名空间
      */
     public $taskNamespace = 'app\\tasks';
+
+    public $context;
 
     public function run()
     {
