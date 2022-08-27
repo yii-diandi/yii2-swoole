@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-19 22:47:02
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-27 14:28:59
+ * @Last Modified time: 2022-08-27 14:41:37
  */
 
 /**
@@ -239,10 +239,10 @@ class Server extends BaseObject
 
         if(Yii::$app->response->checkAccess($response)){
             Yii::$app->run();
-            $this->_response->end(Context::get('swooleServer'));
+            Yii::$app->response->clear();
             //退出协程时清理
             Context::delete('swooleServer');
-            Yii::$app->response->clear();
+            $response->end(Context::get('swooleServer'));
         }
 
        
