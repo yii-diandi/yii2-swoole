@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2022-06-02 17:13:12
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-22 17:21:44
+ * @Last Modified time: 2022-08-27 14:20:34
  */
 
 /**
@@ -38,6 +38,7 @@ class Request extends \yii\web\Request
     private $_addons;
 
     public $post;
+
 
     /**
      * @return \Swoole\Http\Request
@@ -163,8 +164,12 @@ class Request extends \yii\web\Request
         $_GET = $this->_request->get ?: [];
         $_POST = $this->_request->post ?: [];
         $content = $this->_request->getContent()? json_decode($this->_request->getContent(),true) :[];
-        print_r($content);
-        $_GPC = array_merge($_GET, $_POST, $this->_request->header,$content);
+        
+        $_GPC = array_merge($_GET, $_POST,[
+            'bloc_id'=>$this->headers['bloc-id'],
+            'store_id'=>$this->headers['store-id'],
+            'access_token'=>$this->headers['access-token'],
+        ],$content);
        
         $this->_addons = isset($_GPC['addons']) ? $_GPC['addons'] : 'sys';
 

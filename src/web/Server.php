@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-19 22:47:02
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-22 17:22:04
+ * @Last Modified time: 2022-08-27 14:28:59
  */
 
 /**
@@ -15,12 +15,12 @@
 namespace diandi\swoole\web;
 
 use common\helpers\ResultHelper;
-use diandi\swoole\coroutine\Context;
 use Exception;
 use Throwable;
 use Yii;
 use yii\base\BaseObject;
 use yii\base\InvalidConfigException;
+
 
 /**
  * Web服务器
@@ -217,9 +217,15 @@ class Server extends BaseObject
     public function onRequest(\Swoole\Http\Request $request, \Swoole\Http\Response $response)
     {
         global $_GPC;
+
+        if ($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
+            $response->end();
+            return;
+        }
+        $request_uri = $request->server['request_uri'];
+        Context::put('swooleServer', $request_uri);
         Yii::$app->request->setRequest($request);
         Yii::$app->response->setResponse($response);
-
         // list($controller, $action) = explode('/', trim($request->server['request_uri'], '/'));
 
         // print_r($controller, $action);
@@ -233,8 +239,13 @@ class Server extends BaseObject
 
         if(Yii::$app->response->checkAccess($response)){
             Yii::$app->run();
+            $this->_response->end(Context::get('swooleServer'));
+            //退出协程时清理
+            Context::delete('swooleServer');
             Yii::$app->response->clear();
         }
+
+       
     }
 
     /**

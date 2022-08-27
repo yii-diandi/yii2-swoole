@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2022-06-02 17:13:12
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-22 15:49:59
+ * @Last Modified time: 2022-08-27 14:11:12
  */
 
 /**
@@ -45,6 +45,7 @@ class ErrorHandler extends \yii\web\ErrorHandler
 
         $this->exception = $exception;
 
+
         \Swoole\Coroutine::create(function () use ($exception) {
             try {
                 $this->logException($exception);
@@ -52,15 +53,19 @@ class ErrorHandler extends \yii\web\ErrorHandler
                     $this->clearOutput();
                 }
                 $this->renderException($exception);
-                throw new \RuntimeException(__FILE__, __LINE__);
+                // throw new \RuntimeException(__FILE__, __LINE__);
             } catch (\Exception $e) {
                 // an other exception could be thrown while displaying the exception
                 $this->handleFallbackExceptionMessage($e, $exception);
             } catch (\Throwable $e) {
+                $msg = $e->getMessage();
                 // additional check for \Throwable introduced in PHP 7
                 $this->handleFallbackExceptionMessage($e, $exception);
+            }catch (\Swoole\ExitException $e) {
+                var_dump($e->getMessage());
+                var_dump($e->getStatus() === 1);
+                var_dump($e->getFlags() === SWOOLE_EXIT_IN_COROUTINE);
             }
-            
         });
 
       
@@ -88,7 +93,8 @@ class ErrorHandler extends \yii\web\ErrorHandler
             echo 'An internal server error occurred.';
         }
         $msg .= "\n\$_SERVER = " . VarDumper::export($_SERVER);
-        throw new Exception($msg);
+        throw new \RuntimeException(__FILE__, __LINE__);
+        // throw new Exception($msg);
     }
 
     /**
@@ -258,6 +264,8 @@ class ErrorHandler extends \yii\web\ErrorHandler
         } else {
             echo $message . "\n";
         }
+
+        throw new \RuntimeException(__FILE__, __LINE__);
     }
 
     /**
