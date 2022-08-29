@@ -4,19 +4,14 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-23 09:46:08
+ * @Last Modified time: 2022-08-29 21:24:03
  */
 
 namespace diandi\swoole\server;
 
-use diandi\swoole\events\BaseServerEvent;
 use diandi\swoole\web\Application;
-use Yii;
-use diandi\swoole\websocket\live\Room;
-use diandi\swoole\websocket\live\RoomMap;
-use diandi\swoole\websocket\live\RoomMember;
 use Throwable;
-use yii\base\BaseObject;
+use Yii;
 use yii\base\Component;
 
 /**
@@ -71,7 +66,6 @@ class BaseServer extends Component
      */
     public $server;
 
-
     /**
      * @inheritDoc
      * @throws InvalidConfigException
@@ -82,7 +76,6 @@ class BaseServer extends Component
         if (empty($this->app)) {
             throw new InvalidConfigException('The "app" property mus be set.');
         }
-
 
         if (!$this->server instanceof \Swoole\Server) {
 
@@ -105,7 +98,6 @@ class BaseServer extends Component
         }
     }
 
-
     /**
      * 服务运行入口
      * @param array $config swoole配置文件
@@ -120,11 +112,9 @@ class BaseServer extends Component
         }
         $command = $argv[1];
 
-
         $pidFile = $this->options['pid_file'];
 
-
-        $masterPid     = file_exists($pidFile) ? file_get_contents($pidFile) : null;
+        $masterPid = file_exists($pidFile) ? file_get_contents($pidFile) : null;
         if ($command == 'start') {
             if ($masterPid > 0 and posix_kill($masterPid, 0)) {
                 print_r('Server is already running. Please stop it first.' . PHP_EOL);
@@ -153,14 +143,14 @@ class BaseServer extends Component
         }
     }
 
-
     /**
      * 事件监听
      * @return array
      */
     public function events()
     {
-        return [
+
+        $events = [
             'start' => [$this, 'onStart'],
             'workerStart' => [$this, 'onWorkerStart'],
             'WorkerStop' => [$this, 'onWorkerStop'],
@@ -176,6 +166,13 @@ class BaseServer extends Component
             'close' => [$this, 'onClose'],
             'timer' => [$this, 'onTimer'],
         ];
+
+        $task_enable_coroutine = $this->options['task_enable_coroutine'];
+        if (isset($task_enable_coroutine) && $task_enable_coroutine) {
+            $events['task'] = [$this, 'onCorTask'];
+        }
+
+        return $events;
     }
 
     /**
@@ -214,7 +211,6 @@ class BaseServer extends Component
         }
     }
 
-
     /**
      * 工作进程异常
      * @param \Swoole\Server $server
@@ -234,7 +230,7 @@ class BaseServer extends Component
 
     public function onWorkerStop(\Swoole\Server $server, int $workerId)
     {
-        
+
     }
 
     public function onWorkerExit(\Swoole\Server $server, int $workerId)
@@ -296,8 +292,6 @@ class BaseServer extends Component
         // 验证token进行连接判断
     }
 
-
-
     /**
      * 关闭连接
      *
@@ -330,6 +324,11 @@ class BaseServer extends Component
             Yii::$app->errorHandler->handleException($e);
             return 1;
         }
+    }
+
+    public function onCorTask(\Swoole\Server $server, \Swoole\Server\Task $task)
+    {
+
     }
 
     /**
