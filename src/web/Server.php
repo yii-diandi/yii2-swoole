@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-19 22:47:02
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-27 15:17:26
+ * @Last Modified time: 2022-08-29 21:37:57
  */
 
 /**
@@ -14,13 +14,11 @@
 
 namespace diandi\swoole\web;
 
-use common\helpers\ResultHelper;
 use Exception;
 use Throwable;
 use Yii;
 use yii\base\BaseObject;
 use yii\base\InvalidConfigException;
-
 
 /**
  * Web服务器
@@ -89,7 +87,6 @@ class Server extends BaseObject
             $this->webServer = new \Swoole\Http\Server($this->host, $this->port, $this->mode, $this->sockType);
             $this->webServer->set($this->options);
         }
-
         foreach ($this->events() as $event => $callback) {
             if (method_exists($this, 'on' . $event)) {
                 $this->webServer->on($event, $callback);
@@ -103,7 +100,7 @@ class Server extends BaseObject
      */
     public function events()
     {
-        return [
+        $events = [
             'start' => [$this, 'onStart'],
             'workerStart' => [$this, 'onWorkerStart'],
             'workerStop' => [$this, 'onWorkerStop'],
@@ -112,6 +109,12 @@ class Server extends BaseObject
             'task' => [$this, 'onTask'],
             'finish' => [$this, 'onFinish'],
         ];
+
+        $task_enable_coroutine = $this->options['task_enable_coroutine'];
+        if (isset($task_enable_coroutine) && $task_enable_coroutine) {
+            $events['task'] = [$this, 'onCorTask'];
+        }
+        return $events;
     }
 
     /**
@@ -228,23 +231,26 @@ class Server extends BaseObject
             Yii::$app->request->setRequest($request);
             Yii::$app->response->setResponse($response);
             // list($controller, $action) = explode('/', trim($request->server['request_uri'], '/'));
-    
+
             // print_r($controller, $action);
-    
+
             // //根据 $controller, $action 映射到不同的控制器类和方法
             // (new $controller)->$action($request, $response);
-            
-    
+
             // var_dump($response->isWritable()); // false
             // $response->setStatusCode(403);
-    
-            if(Yii::$app->response->checkAccess($response)){
+
+            if (Yii::$app->response->checkAccess($response)) {
                 Yii::$app->run();
                 Yii::$app->request->onEndRequest();
             }
         } catch (\Throwable $throwable) {
             echo $throwable->getMessage();
         }
+    }
+
+    public function onCorTask(\Swoole\Server $server, \Swoole\Server\Task $task)
+    {
     }
 
     /**
