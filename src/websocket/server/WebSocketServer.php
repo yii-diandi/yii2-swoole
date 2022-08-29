@@ -4,17 +4,16 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-27 18:25:44
+ * @Last Modified time: 2022-08-29 21:48:07
  */
 
 namespace diandi\swoole\websocket\server;
 
 use common\helpers\loggingHelper;
-use diandi\swoole\web\Application;
 use diandi\swoole\websocket\events\Mailer;
-use diandi\swoole\websocket\live\Room;
 use diandi\swoole\websocket\live\RoomMap;
 use diandi\swoole\websocket\live\RoomMember;
+use diandi\swoole\web\Application;
 use Yii;
 use yii\base\BaseObject;
 
@@ -91,7 +90,7 @@ class WebSocketServer extends BaseObject
         }
 
         foreach ($this->events() as $event => $callback) {
-            if (method_exists($this, 'on'.$event)) {
+            if (method_exists($this, 'on' . $event)) {
                 $this->server->on($event, $callback);
             }
         }
@@ -104,7 +103,7 @@ class WebSocketServer extends BaseObject
     {
         global $argv;
         if (!isset($argv[0], $argv[1])) {
-            print_r('invalid run params,see help,run like:php http-server.php start|stop|reload'.PHP_EOL);
+            print_r('invalid run params,see help,run like:php http-server.php start|stop|reload' . PHP_EOL);
 
             return;
         }
@@ -115,7 +114,7 @@ class WebSocketServer extends BaseObject
         $masterPid = file_exists($pidFile) ? file_get_contents($pidFile) : null;
         if ($command == 'start') {
             if ($masterPid > 0 and posix_kill($masterPid, 0)) {
-                print_r('Server is already running. Please stop it first.'.PHP_EOL);
+                print_r('Server is already running. Please stop it first.' . PHP_EOL);
                 exit;
             }
 
@@ -128,7 +127,7 @@ class WebSocketServer extends BaseObject
                     unlink($pidFile);
                 }
             } else {
-                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGTERM.'.PHP_EOL);
+                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGTERM.' . PHP_EOL);
             }
             exit;
         } elseif ($command == 'reload') {
@@ -136,7 +135,7 @@ class WebSocketServer extends BaseObject
                 posix_kill($masterPid, SIGUSR1); // reload all worker
                 //                posix_kill($masterPid, SIGUSR2); // reload all task
             } else {
-                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGUSR1.'.PHP_EOL);
+                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGUSR1.' . PHP_EOL);
             }
             exit;
         }
@@ -149,9 +148,10 @@ class WebSocketServer extends BaseObject
      */
     public function events()
     {
-        return [
+        $events = [
             'start' => [$this, 'onStart'],
             'workerStart' => [$this, 'onWorkerStart'],
+            'handshake' => [$this, 'onHandshake'],
             'workerError' => [$this, 'onWorkerError'],
             'task' => [$this, 'onTask'],
             'finish' => [$this, 'onFinish'],
@@ -159,6 +159,13 @@ class WebSocketServer extends BaseObject
             'message' => [$this, 'onMessage'],
             'close' => [$this, 'onClose'],
         ];
+
+        $task_enable_coroutine = $this->options['task_enable_coroutine'];
+        if (isset($task_enable_coroutine) && $task_enable_coroutine) {
+            $events['task'] = [$this, 'onCorTask'];
+        }
+
+        return $events;
     }
 
     /**
@@ -209,6 +216,11 @@ class WebSocketServer extends BaseObject
         fprintf(STDERR, "worker error. id=%d pid=%d code=%d signal=%d\n", $workerId, $workerPid, $exitCode, $signal);
     }
 
+    public function onHandshake(\Swoole\Http\Request $request, \Swoole\Http\Response $response)
+    {
+
+    }
+
     /**
      * 开启连接.
      *
@@ -233,10 +245,10 @@ class WebSocketServer extends BaseObject
      */
     public function onMessage(\Swoole\WebSocket\Server $server, $frame)
     {
-        echo '没有消息内容'.$frame->data.PHP_EOL;
-        loggingHelper::writeLog('asdasdasd','sdfsfs','不不不',[]);
+        echo '没有消息内容' . $frame->data . PHP_EOL;
+        loggingHelper::writeLog('asdasdasd', 'sdfsfs', '不不不', []);
         if (!($message = json_decode($frame->data, true))) {
-            echo '没有消息内容'.PHP_EOL;
+            echo '没有消息内容' . PHP_EOL;
             return true;
         }
 
@@ -246,7 +258,7 @@ class WebSocketServer extends BaseObject
         }
 
         // 输出调试信息
-        echo $frame->data.PHP_EOL;
+        echo $frame->data . PHP_EOL;
 
         // 事件处理
         $Mailer = new Mailer();
@@ -254,14 +266,14 @@ class WebSocketServer extends BaseObject
 
         // 业务逻辑
         switch ($message['type']) {
-                // 心跳
+            // 心跳
             case 'pong':
 
                 return true;
 
                 break;
 
-                // 进入房间(登录)
+            // 进入房间(登录)
             case 'login':
 
                 // RoomMember::release($message['room_id']);
@@ -300,7 +312,7 @@ class WebSocketServer extends BaseObject
 
                 break;
 
-                // 评论消息
+            // 评论消息
             case 'say':
 
                 // 私聊
@@ -331,7 +343,7 @@ class WebSocketServer extends BaseObject
 
                 break;
 
-                // 礼物
+            // 礼物
             case 'gift':
 
                 // 广播消息
@@ -340,7 +352,7 @@ class WebSocketServer extends BaseObject
                 ]));
 
                 break;
-                // 离开房间
+            // 离开房间
             case 'leave':
                 $fd = $message['fd'];
 
@@ -373,7 +385,7 @@ class WebSocketServer extends BaseObject
      */
     public function onClose(\Swoole\WebSocket\Server $server, $fd)
     {
-        echo "client {$fd} closed".PHP_EOL;
+        echo "client {$fd} closed" . PHP_EOL;
 
         // 验证是否进入房间，如果有退出房间列表
         if ($room_id = RoomMap::get($fd)) {
@@ -422,7 +434,7 @@ class WebSocketServer extends BaseObject
             unset($info);
         }
 
-        echo "AsyncTask[$task_id] 完成: $data".PHP_EOL;
+        echo "AsyncTask[$task_id] 完成: $data" . PHP_EOL;
     }
 
     /**
