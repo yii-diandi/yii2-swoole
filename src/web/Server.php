@@ -199,7 +199,6 @@ class Server extends BaseObject
             @swoole_set_process_name("ddicms-webServer");
             new Application($this->app);
             Yii::$app->set('webServer', $webServer);
-
         } catch (\Exception $e) {
             print_r("start yii error:" . ErrorHandler::convertExceptionToString($e) . PHP_EOL);
             $this->webServer->shutdown();
