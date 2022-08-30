@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-30 16:54:44
+ * @Last Modified time: 2022-08-30 20:13:18
  */
 
 namespace diandi\swoole\websocket\server;
@@ -215,8 +215,7 @@ class WebSocketServer extends BaseObject
             }
         } catch (\Exception $e) {
             print_r("start yii error:" . ErrorHandler::convertExceptionToString($e) . PHP_EOL);
-            $this->server->shutdown();
-            die;
+            // $this->server->shutdown();
         }
     }
 
