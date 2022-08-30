@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-29 21:24:03
+ * @Last Modified time: 2022-08-30 16:55:00
  */
 
 namespace diandi\swoole\server;
@@ -13,6 +13,7 @@ use diandi\swoole\web\Application;
 use Throwable;
 use Yii;
 use yii\base\Component;
+use yii\web\ErrorHandler;
 
 /**
  * 长连接
@@ -155,8 +156,6 @@ class BaseServer extends Component
             'workerStart' => [$this, 'onWorkerStart'],
             'WorkerStop' => [$this, 'onWorkerStop'],
             'workerError' => [$this, 'onWorkerError'],
-            'task' => [$this, 'onTask'],
-            'finish' => [$this, 'onFinish'],
             'managerStart' => [$this, 'onManagerStart'],
             'managerStop' => [$this, 'onManagerStop'],
             'pipeMessage' => [$this, 'onPipeMessage'],
@@ -165,11 +164,15 @@ class BaseServer extends Component
             'connect' => [$this, 'onConnect'],
             'close' => [$this, 'onClose'],
             'timer' => [$this, 'onTimer'],
+            'shutdown' => [$this, 'onShutdown'],
         ];
 
-        $task_enable_coroutine = $this->options['task_enable_coroutine'];
-        if (isset($task_enable_coroutine) && $task_enable_coroutine) {
-            $events['task'] = [$this, 'onCorTask'];
+        if (isset($this->options['task_worker_num'])) {
+            $events['task'] = [$this, 'onTask'];
+            $events['finish'] = [$this, 'onFinish'];
+            if (isset($this->options['task_enable_coroutine']) && $this->options['task_enable_coroutine']) {
+                $events['task'] = [$this, 'onCorTask'];
+            }
         }
 
         return $events;
@@ -202,13 +205,23 @@ class BaseServer extends Component
     public function onWorkerStart(\Swoole\Server $server, $workerId)
     {
         global $argv;
-        new Application($this->app);
-        Yii::$app->set('server', $server);
-        if ($workerId >= $this->options['worker_num']) {
-            @swoole_set_process_name("php {$argv[0]} task worker");
-        } else {
-            @swoole_set_process_name("php {$argv[0]} event worker");
+        if (function_exists('opcache_reset')) {
+            opcache_reset();
         }
+        try {
+            new Application($this->app);
+            Yii::$app->set('server', $server);
+            if ($workerId >= $this->options['worker_num']) {
+                @swoole_set_process_name("php {$argv[0]} task worker");
+            } else {
+                @swoole_set_process_name("php {$argv[0]} event worker");
+            }
+        } catch (\Exception $e) {
+            print_r("start yii error:" . ErrorHandler::convertExceptionToString($e) . PHP_EOL);
+            $this->server->shutdown();
+            die;
+        }
+
     }
 
     /**

@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-19 22:47:02
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-29 21:37:57
+ * @Last Modified time: 2022-08-30 19:50:19
  */
 
 /**
@@ -105,15 +105,18 @@ class Server extends BaseObject
             'workerStart' => [$this, 'onWorkerStart'],
             'workerStop' => [$this, 'onWorkerStop'],
             'workerError' => [$this, 'onWorkerError'],
+            'shutdown' => [$this, 'onShutdown'],
             'request' => [$this, 'onRequest'],
-            'task' => [$this, 'onTask'],
-            'finish' => [$this, 'onFinish'],
         ];
 
-        $task_enable_coroutine = $this->options['task_enable_coroutine'];
-        if (isset($task_enable_coroutine) && $task_enable_coroutine) {
-            $events['task'] = [$this, 'onCorTask'];
+        if (isset($this->options['task_worker_num'])) {
+            $events['task'] = [$this, 'onTask'];
+            $events['finish'] = [$this, 'onFinish'];
+            if (isset($this->options['task_enable_coroutine']) && $this->options['task_enable_coroutine']) {
+                $events['task'] = [$this, 'onCorTask'];
+            }
         }
+
         return $events;
     }
 
@@ -189,9 +192,20 @@ class Server extends BaseObject
      */
     public function onWorkerStart(\Swoole\Http\Server $webServer, $workerId)
     {
-        @swoole_set_process_name("ddicms-webServer");
-        new Application($this->app);
-        Yii::$app->set('webServer', $webServer);
+        if (function_exists('opcache_reset')) {
+            opcache_reset();
+        }
+        try {
+            @swoole_set_process_name("ddicms-webServer");
+            new Application($this->app);
+            Yii::$app->set('webServer', $webServer);
+
+        } catch (\Exception $e) {
+            print_r("start yii error:" . ErrorHandler::convertExceptionToString($e) . PHP_EOL);
+            $this->server->shutdown();
+            die;
+        }
+
     }
 
     public function onWorkerStop(\Swoole\Http\Server $webServer, $workerId)
@@ -247,6 +261,10 @@ class Server extends BaseObject
         } catch (\Throwable $throwable) {
             echo $throwable->getMessage();
         }
+    }
+
+    public function onShutdown(\Swoole\Server $server)
+    {
     }
 
     public function onCorTask(\Swoole\Server $server, \Swoole\Server\Task $task)

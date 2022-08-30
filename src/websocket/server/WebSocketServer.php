@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-29 21:48:07
+ * @Last Modified time: 2022-08-30 16:54:44
  */
 
 namespace diandi\swoole\websocket\server;
@@ -16,6 +16,7 @@ use diandi\swoole\websocket\live\RoomMember;
 use diandi\swoole\web\Application;
 use Yii;
 use yii\base\BaseObject;
+use yii\console\ErrorHandler;
 
 /**
  * 长连接.
@@ -153,16 +154,18 @@ class WebSocketServer extends BaseObject
             'workerStart' => [$this, 'onWorkerStart'],
             'handshake' => [$this, 'onHandshake'],
             'workerError' => [$this, 'onWorkerError'],
-            'task' => [$this, 'onTask'],
-            'finish' => [$this, 'onFinish'],
             'open' => [$this, 'onOpen'],
             'message' => [$this, 'onMessage'],
             'close' => [$this, 'onClose'],
+            'shutdown' => [$this, 'onShutdown'],
         ];
 
-        $task_enable_coroutine = $this->options['task_enable_coroutine'];
-        if (isset($task_enable_coroutine) && $task_enable_coroutine) {
-            $events['task'] = [$this, 'onCorTask'];
+        if (isset($this->options['task_worker_num'])) {
+            $events['task'] = [$this, 'onTask'];
+            $events['finish'] = [$this, 'onFinish'];
+            if (isset($this->options['task_enable_coroutine']) && $this->options['task_enable_coroutine']) {
+                $events['task'] = [$this, 'onCorTask'];
+            }
         }
 
         return $events;
@@ -198,8 +201,23 @@ class WebSocketServer extends BaseObject
      */
     public function onWorkerStart(\Swoole\WebSocket\Server $server, $workerId)
     {
-        new Application($this->app);
-        Yii::$app->set('server', $server);
+        if (function_exists('opcache_reset')) {
+            opcache_reset();
+        }
+
+        try {
+            new Application($this->app);
+            Yii::$app->set('server', $server);
+            if ($workerId >= $this->options['worker_num']) {
+                @swoole_set_process_name("php {$argv[0]} task worker");
+            } else {
+                @swoole_set_process_name("php {$argv[0]} event worker");
+            }
+        } catch (\Exception $e) {
+            print_r("start yii error:" . ErrorHandler::convertExceptionToString($e) . PHP_EOL);
+            $this->server->shutdown();
+            die;
+        }
     }
 
     /**
@@ -375,6 +393,11 @@ class WebSocketServer extends BaseObject
         }
 
         return true;
+    }
+
+    public function onShutdown(\Swoole\WebSocket\Server $server)
+    {
+
     }
 
     /**

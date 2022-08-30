@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-03-22 04:46:55
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-27 15:21:38
+ * @Last Modified time: 2022-08-30 17:15:29
  */
 
 /**
@@ -41,7 +41,7 @@ class Application extends \yii\web\Application
             $this->trigger(self::EVENT_BEFORE_REQUEST);
 
             $this->state = self::STATE_HANDLING_REQUEST;
-            
+
             $response = $this->handleRequest($this->getRequest());
 
             $this->state = self::STATE_AFTER_REQUEST;
@@ -59,8 +59,6 @@ class Application extends \yii\web\Application
         }
     }
 
-
-
     /**
      * @return \Swoole\Http\Server|mixed
      * @throws InvalidConfigException
@@ -68,5 +66,17 @@ class Application extends \yii\web\Application
     public function getWebServer()
     {
         return $this->get('webServer');
+    }
+
+    public function getConnectionManager()
+    {
+        return $this->get('connectionManager');
+    }
+
+    public function coreComponents()
+    {
+        return array_merge(parent::coreComponents(), [
+            'connectionManager' => ['class' => 'tsingsun\swoole\pool\ConnectionManager'],
+        ]);
     }
 }
