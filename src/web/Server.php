@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-19 22:47:02
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-30 20:01:30
+ * @Last Modified time: 2022-08-30 20:10:49
  */
 
 /**
@@ -201,7 +201,7 @@ class Server extends BaseObject
             Yii::$app->set('webServer', $webServer);
         } catch (\Exception $e) {
             print_r("start yii error:" . ErrorHandler::convertExceptionToString($e) . PHP_EOL);
-            $this->webServer->shutdown();
+            // $this->webServer->shutdown();
         }
 
     }
