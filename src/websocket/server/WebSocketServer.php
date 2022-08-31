@@ -4,15 +4,11 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-30 20:13:18
+ * @Last Modified time: 2022-08-31 13:36:54
  */
 
 namespace diandi\swoole\websocket\server;
 
-use common\helpers\loggingHelper;
-use diandi\swoole\websocket\events\Mailer;
-use diandi\swoole\websocket\live\RoomMap;
-use diandi\swoole\websocket\live\RoomMember;
 use diandi\swoole\web\Application;
 use Yii;
 use yii\base\BaseObject;
@@ -155,6 +151,7 @@ class WebSocketServer extends BaseObject
             'handshake' => [$this, 'onHandshake'],
             'workerError' => [$this, 'onWorkerError'],
             'open' => [$this, 'onOpen'],
+            'receive' => [$this, 'onReceive'],
             'message' => [$this, 'onMessage'],
             'close' => [$this, 'onClose'],
             'shutdown' => [$this, 'onShutdown'],
@@ -246,10 +243,6 @@ class WebSocketServer extends BaseObject
      */
     public function onOpen(\Swoole\WebSocket\Server $server, $frame)
     {
-        echo "server: handshake success with fd{$frame->fd}\n";
-        echo "server: {$frame->data}\n";
-
-        // 验证token进行连接判断
     }
 
     /**
@@ -262,136 +255,7 @@ class WebSocketServer extends BaseObject
      */
     public function onMessage(\Swoole\WebSocket\Server $server, $frame)
     {
-        echo '没有消息内容' . $frame->data . PHP_EOL;
-        loggingHelper::writeLog('asdasdasd', 'sdfsfs', '不不不', []);
-        if (!($message = json_decode($frame->data, true))) {
-            echo '没有消息内容' . PHP_EOL;
-            return true;
-        }
 
-        // 判断房间id
-        if (!isset($message['room_id']) && in_array($message['type'], ['login'])) {
-            throw new \Exception("room_id not set. client_ip:{$_SERVER['REMOTE_ADDR']} \$message:$frame->data");
-        }
-
-        // 输出调试信息
-        echo $frame->data . PHP_EOL;
-
-        // 事件处理
-        $Mailer = new Mailer();
-        $Mailer->send($message);
-
-        // 业务逻辑
-        switch ($message['type']) {
-            // 心跳
-            case 'pong':
-
-                return true;
-
-                break;
-
-            // 进入房间(登录)
-            case 'login':
-
-                // RoomMember::release($message['room_id']);
-                $member = [
-                    'fd' => $frame->fd,
-                    'room_id' => $message['room_id'],
-                    'member_id' => $message['member']['member_id'],
-                    'nickname' => $message['member']['nickname'] ? $message['member']['nickname'] : $message['member']['username'],
-                    'head_portrait' => $message['member']['avatarUrl'] ? $message['member']['avatarUrl'] : $message['member']['avatar'],
-                ];
-
-                // 加入全部列表
-                RoomMap::set($frame->fd, $message['room_id']);
-                // 加入房间列表
-                RoomMember::set($message['room_id'], $frame->fd, $member);
-
-                $lists = RoomMember::list($message['room_id']);
-                foreach ($lists as $key => $value) {
-                    $member_one = json_decode($value, true);
-                    // 返回除了自己的
-                    if ($member_one['member_id'] != $member['member_id']) {
-                        $list[] = $member_one;
-                    }
-                }
-
-                // 转发给自己获取在线列表
-                $this->server->push($frame->fd, $this->singleMessage('login_res', $frame->fd, $frame->fd, [
-                    'list' => $list,
-                ]));
-
-                // 转播给当前房间的所有客户端
-                $this->server->task($this->massMessage($message['type'], $frame->fd, [
-                    'count' => RoomMember::count($message['room_id']),
-                    'member' => $member,
-                ]));
-
-                break;
-
-            // 评论消息
-            case 'say':
-
-                // 私聊
-                if ($message['to_client_id'] != 'all') {
-                    $frommember = RoomMember::get($message['room_id'], $message['from_client_id']);
-
-                    // 私发
-                    $this->server->push($message['to_client_id'], $this->singleMessage($message['type'], $frame->fd, $message['to_client_id'], [
-                        'content' => nl2br(htmlspecialchars($message['content'])),
-                        'from_member' => json_decode($frommember, true),
-                    ]));
-
-                    $tomember = RoomMember::get($message['room_id'], $message['to_client_id']);
-
-                    // 转发给自己内容发送成功
-                    $this->server->push($frame->fd, $this->singleMessage('say_res', $frame->fd, $frame->fd, [
-                        'message' => $message,
-                        'to_member' => json_decode($tomember, true),
-                    ]));
-
-                    return true;
-                }
-
-                // 广播消息
-                $this->server->task($this->massMessage($message['type'], $frame->fd, [
-                    'content' => nl2br(htmlspecialchars($message['content'])),
-                ]));
-
-                break;
-
-            // 礼物
-            case 'gift':
-
-                // 广播消息
-                $this->server->task($this->massMessage($message['type'], $frame->fd, [
-                    'gift_id' => $message['gift_id'],
-                ]));
-
-                break;
-            // 离开房间
-            case 'leave':
-                $fd = $message['fd'];
-
-                if ($room_id = RoomMap::get($fd)) {
-                    // 删除
-                    RoomMember::del($room_id, $fd);
-
-                    // 推送退出房间
-                    $this->server->task($this->massMessage($message['type'], $frame->fd, [
-                        'count' => RoomMember::count($room_id),
-                    ]));
-
-                    // 转发给自己退出成功
-                    $this->server->push($frame->fd, $this->singleMessage('leave_res', $frame->fd, $frame->fd, [
-                        'message' => $message,
-                    ]));
-                }
-
-                break;
-        }
-
-        return true;
     }
 
     public function onShutdown(\Swoole\WebSocket\Server $server)
@@ -407,17 +271,7 @@ class WebSocketServer extends BaseObject
      */
     public function onClose(\Swoole\WebSocket\Server $server, $fd)
     {
-        echo "client {$fd} closed" . PHP_EOL;
 
-        // 验证是否进入房间，如果有退出房间列表
-        if ($room_id = RoomMap::get($fd)) {
-            // 删除
-            RoomMember::del($room_id, $fd);
-            // 推送退出房间
-            $this->server->task($this->massMessage('leave', $fd, [
-                'count' => RoomMember::count($room_id),
-            ]));
-        }
     }
 
     /**
@@ -430,7 +284,6 @@ class WebSocketServer extends BaseObject
      */
     public function onTask(\Swoole\WebSocket\Server $server, $task_id, $from_id, $data)
     {
-        $this->server->finish($data);
     }
 
     /**
@@ -442,61 +295,5 @@ class WebSocketServer extends BaseObject
      */
     public function onFinish(\Swoole\WebSocket\Server $server, $task_id, $data)
     {
-        // 根据 fd 下发房间通知
-        $sendData = json_decode($data, true);
-        $room_id = RoomMap::get($sendData['from_client_id']);
-        $list = RoomMember::list($room_id);
-        unset($sendData, $room_id);
-
-        //广播
-        foreach ($list as $val) {
-            $info = json_decode($val, true);
-            $this->server->push($info['fd'], $data);
-
-            unset($info);
-        }
-
-        echo "AsyncTask[$task_id] 完成: $data" . PHP_EOL;
-    }
-
-    /**
-     * 群发消息.
-     *
-     * @param $type
-     * @param $from_client_id
-     *
-     * @return string
-     */
-    protected function massMessage($type, $from_client_id, array $otherArr = [])
-    {
-        $message = array_merge([
-            'type' => $type,
-            'from_client_id' => $from_client_id,
-            'to_client_id' => 'all',
-            'time' => date('Y-m-d H:i:s'),
-        ], $otherArr);
-
-        return json_encode($message);
-    }
-
-    /**
-     * 单发消息.
-     *
-     * @param $type
-     * @param $from_client_id
-     * @param $to_client_id
-     *
-     * @return string
-     */
-    protected function singleMessage($type, $from_client_id, $to_client_id, array $otherArr = [])
-    {
-        $message = array_merge([
-            'type' => $type,
-            'from_client_id' => $from_client_id,
-            'to_client_id' => $to_client_id,
-            'time' => date('Y-m-d H:i:s'),
-        ], $otherArr);
-
-        return json_encode($message);
     }
 }
