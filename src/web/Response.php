@@ -3,18 +3,11 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2022-06-02 17:13:12
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-24 21:43:22
- */
-
-/**
- * @author xialeistudio
- * @date 2019-05-17
+ * @Last Modified time: 2022-08-31 19:04:39
  */
 
 namespace diandi\swoole\web;
 
-use common\helpers\ResultHelper;
-use swooleService\models\SwooleAccessToken;
 use Yii;
 use yii\base\InvalidConfigException;
 
@@ -29,12 +22,10 @@ class Response extends \yii\web\Response
      * @var \Swoole\Http\Response
      */
     private $_response;
-    
-    public $content;
-    
-    public $fd;
 
-    
+    public $content;
+
+    public $fd;
 
     /**
      * @return \Swoole\Http\Response
@@ -68,13 +59,10 @@ class Response extends \yii\web\Response
         $this->sendCookies();
     }
 
-    
-
     public function detach()
     {
         return $this->_response->detach();
     }
-
 
     public function isWritable()
     {
@@ -84,7 +72,7 @@ class Response extends \yii\web\Response
     public function checkAccess($response)
     {
         // 验证头部是否传递了access-token
-   
+
         // $SwooleAccessToken = new SwooleAccessToken();
         // if(empty($headers['access-token'])){
         //     ResultHelper::httpJson(401,'access-token不能为空');
@@ -100,7 +88,7 @@ class Response extends \yii\web\Response
         //     ResultHelper::httpJson(401,'access-token不能为空');
         //     return false;
         // }
-        
+
         // $swooleMember = $SwooleAccessToken::findIdentityByAccessToken($headers['access-token']);
 
         // if(key_exists('code',$swooleMember)){
@@ -171,7 +159,6 @@ class Response extends \yii\web\Response
         $this->_response->end();
     }
 
-    
     /**
      * Sends the response to the client.
      */
@@ -188,5 +175,5 @@ class Response extends \yii\web\Response
         $this->trigger(self::EVENT_AFTER_SEND);
         $this->isSent = true;
     }
-    
+
 }

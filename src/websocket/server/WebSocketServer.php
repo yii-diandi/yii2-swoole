@@ -4,15 +4,12 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-31 13:36:54
+ * @Last Modified time: 2022-09-02 07:25:29
  */
 
 namespace diandi\swoole\websocket\server;
 
-use diandi\swoole\web\Application;
-use Yii;
 use yii\base\BaseObject;
-use yii\console\ErrorHandler;
 
 /**
  * 长连接.
@@ -85,7 +82,20 @@ class WebSocketServer extends BaseObject
 
             $this->server->set($this->options);
         }
+        
+        $this->addlistenerPort();
 
+        $this->addEvents();
+    }
+
+    public function addlistenerPort()
+    {
+           
+    }
+
+
+    public function addEvents()
+    {
         foreach ($this->events() as $event => $callback) {
             if (method_exists($this, 'on' . $event)) {
                 $this->server->on($event, $callback);
@@ -198,22 +208,7 @@ class WebSocketServer extends BaseObject
      */
     public function onWorkerStart(\Swoole\WebSocket\Server $server, $workerId)
     {
-        if (function_exists('opcache_reset')) {
-            opcache_reset();
-        }
 
-        try {
-            new Application($this->app);
-            Yii::$app->set('server', $server);
-            if ($workerId >= $this->options['worker_num']) {
-                @swoole_set_process_name("php {$argv[0]} task worker");
-            } else {
-                @swoole_set_process_name("php {$argv[0]} event worker");
-            }
-        } catch (\Exception $e) {
-            print_r("start yii error:" . ErrorHandler::convertExceptionToString($e) . PHP_EOL);
-            // $this->server->shutdown();
-        }
     }
 
     /**

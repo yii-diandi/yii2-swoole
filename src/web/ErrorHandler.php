@@ -3,12 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2022-06-02 17:13:12
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-27 14:11:12
- */
-
-/**
- * @author xialeistudio
- * @date 2019-05-17
+ * @Last Modified time: 2022-08-31 19:04:31
  */
 
 namespace diandi\swoole\web;
@@ -45,7 +40,6 @@ class ErrorHandler extends \yii\web\ErrorHandler
 
         $this->exception = $exception;
 
-
         \Swoole\Coroutine::create(function () use ($exception) {
             try {
                 $this->logException($exception);
@@ -61,14 +55,12 @@ class ErrorHandler extends \yii\web\ErrorHandler
                 $msg = $e->getMessage();
                 // additional check for \Throwable introduced in PHP 7
                 $this->handleFallbackExceptionMessage($e, $exception);
-            }catch (\Swoole\ExitException $e) {
+            } catch (\Swoole\ExitException $e) {
                 var_dump($e->getMessage());
                 var_dump($e->getStatus() === 1);
                 var_dump($e->getFlags() === SWOOLE_EXIT_IN_COROUTINE);
             }
         });
-
-      
 
         $this->exception = null;
     }
@@ -80,9 +72,9 @@ class ErrorHandler extends \yii\web\ErrorHandler
     protected function handleFallbackExceptionMessage($exception, $previousException)
     {
         $msg = "An Error occurred while handling another error:\n";
-        $msg .= (string)$exception;
+        $msg .= (string) $exception;
         $msg .= "\nPrevious exception:\n";
-        $msg .= (string)$previousException;
+        $msg .= (string) $previousException;
         if (YII_DEBUG) {
             if (PHP_SAPI === 'cli') {
                 echo $msg . "\n";
@@ -247,10 +239,10 @@ class ErrorHandler extends \yii\web\ErrorHandler
                 $message = $this->formatMessage('Exception');
             }
             $message .= $this->formatMessage(" '" . get_class($exception) . "'", [Console::BOLD, Console::FG_BLUE])
-                . ' with message ' . $this->formatMessage("'{$exception->getMessage()}'", [Console::BOLD]) //. "\n"
-                . "\n\nin " . dirname($exception->getFile()) . DIRECTORY_SEPARATOR . $this->formatMessage(basename($exception->getFile()),
-                    [Console::BOLD])
-                . ':' . $this->formatMessage($exception->getLine(), [Console::BOLD, Console::FG_YELLOW]) . "\n";
+            . ' with message ' . $this->formatMessage("'{$exception->getMessage()}'", [Console::BOLD]) //. "\n"
+             . "\n\nin " . dirname($exception->getFile()) . DIRECTORY_SEPARATOR . $this->formatMessage(basename($exception->getFile()),
+                [Console::BOLD])
+            . ':' . $this->formatMessage($exception->getLine(), [Console::BOLD, Console::FG_YELLOW]) . "\n";
             if ($exception instanceof \yii\db\Exception && !empty($exception->errorInfo)) {
                 $message .= "\n" . $this->formatMessage("Error Info:\n", [Console::BOLD]) . print_r($exception->errorInfo, true);
             }

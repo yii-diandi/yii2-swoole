@@ -3,12 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2022-06-02 17:13:12
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-27 15:27:45
- */
-
-/**
- * @author xialeistudio
- * @date 2019-05-17
+ * @Last Modified time: 2022-09-02 14:09:05
  */
 
 namespace diandi\swoole\web;
@@ -41,7 +36,6 @@ class Request extends \yii\web\Request
 
     public $post;
 
-
     /**
      * @return \Swoole\Http\Request
      */
@@ -73,12 +67,12 @@ class Request extends \yii\web\Request
     {
         // 上下文注入
         $container = new Container();
-        $container->set('context',[
-            'class'=>'diandi\swoole\coroutine\Context'
+        $container->set('context', [
+            'class' => 'diandi\swoole\coroutine\Context',
         ]);
         Yii::$app->context = $container->get('context');
         Yii::$app->context->setContextDataByKey(Context::COROUTINE_CONTAINER, new Container());
-        Yii::$app->context->setContextDataByKey(Context::COROUTINE_APP,Yii::$app);
+        Yii::$app->context->setContextDataByKey(Context::COROUTINE_APP, Yii::$app);
     }
 
     /**
@@ -99,9 +93,9 @@ class Request extends \yii\web\Request
         $this->headers->add('store-id', $this->_storeId);
         $this->_accessToken = isset($_GPC['access_token']) ? $_GPC['access_token'] : '';
         $this->headers->add('access-token', $this->_accessToken);
-        
+
         // json数据返回所有数据
-        $this->headers->add('Content-Type',"application/json; charset=utf-8");
+        $this->headers->add('Content-Type', "application/json; charset=utf-8");
 
         foreach ($this->_request->header as $name => $value) {
             $name = str_replace(' ', '-', ucwords(strtolower(str_replace('-', ' ', $name))));
@@ -143,10 +137,14 @@ class Request extends \yii\web\Request
     protected function loadCookies()
     {
         $cookies = [];
+        if(!$this->_request){
+            return [];
+        }
         if ($this->enableCookieValidation) {
             if ($this->cookieValidationKey == '') {
                 throw new InvalidConfigException(get_class($this) . '::cookieValidationKey must be configured with a secret key.');
             }
+            
             $cookies = is_array($this->_request->cookie) ? $this->_request->cookie : [];
             foreach ($cookies as $name => $value) {
                 if (!is_string($value)) {
@@ -186,14 +184,14 @@ class Request extends \yii\web\Request
         global $_GPC;
         $_GET = $this->_request->get ?: [];
         $_POST = $this->_request->post ?: [];
-        $content = $this->_request->getContent()? json_decode($this->_request->getContent(),true) :[];
-        
-        $_GPC = array_merge($_GET, $_POST,[
-            'bloc_id'=>$this->headers['bloc-id'],
-            'store_id'=>$this->headers['store-id'],
-            'access_token'=>$this->headers['access-token'],
-        ],$content);
-       
+        $content = $this->_request->getContent() ? json_decode($this->_request->getContent(), true) : [];
+
+        $_GPC = array_merge($_GET, $_POST, [
+            'bloc_id' => $this->headers['bloc-id'],
+            'store_id' => $this->headers['store-id'],
+            'access_token' => $this->headers['access-token'],
+        ], $content);
+
         $this->_addons = isset($_GPC['addons']) ? $_GPC['addons'] : 'sys';
 
         $_COOKIE = $this->_request->cookie;
@@ -212,17 +210,17 @@ class Request extends \yii\web\Request
         $bloc_id = $this->_blocId;
         $store_id = $this->_storeId;
         $addons = $this->_addons;
-        if($access_token){
+        if ($access_token) {
             Yii::$app->service->commonMemberService->setAccessToken($access_token);
         }
 
-        if($bloc_id && $store_id && $addons){
+        if ($bloc_id && $store_id && $addons) {
             Yii::$app->service->commonGlobalsService->initId($bloc_id, $store_id, $addons);
             Yii::$app->service->commonGlobalsService->getConf($bloc_id);
         }
     }
 
-       /**
+    /**
      * To flush log
      * To destroy context
      */
