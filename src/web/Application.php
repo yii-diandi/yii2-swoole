@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-03-22 04:46:55
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-01 16:34:12
+ * @Last Modified time: 2022-09-02 19:24:33
  */
 
 namespace diandi\swoole\web;
@@ -20,7 +20,7 @@ use yii\base\InvalidConfigException;
  * @property Response $response
  * @property \Swoole\Http\Server $server
  */
-class Application extends \yii\web\Application
+class Application extends  \yii\web\Application
 {
     /**
      * @var string 任务处理器命名空间
@@ -72,5 +72,10 @@ class Application extends \yii\web\Application
         return array_merge(parent::coreComponents(), [
             'connectionManager' => ['class' => 'tsingsun\swoole\pool\ConnectionManager'],
         ]);
+    }
+
+    public function handleRequest($Request)
+    {
+        
     }
 }

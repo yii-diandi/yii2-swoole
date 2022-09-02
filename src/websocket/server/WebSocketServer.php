@@ -4,12 +4,18 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-02 07:25:29
+ * @Last Modified time: 2022-09-02 21:44:34
  */
 
 namespace diandi\swoole\websocket\server;
 
+use function Swoole\Coroutine\run;
+use Swoole\Coroutine\Http\Server;
+use Swoole\Http\Request;
+use Swoole\Http\Response;
+use Swoole\WebSocket\CloseFrame;
 use yii\base\BaseObject;
+use yii\helpers\ArrayHelper;
 
 /**
  * 长连接.
@@ -36,6 +42,18 @@ class WebSocketServer extends BaseObject
     public $sockType = SWOOLE_SOCK_TCP;
 
     public $type = 'ws';
+    
+    /**
+     * bool $reuse_port
+     * @var bool
+     * @date 2022-09-02
+     * @example
+     * @author Wang Chunsheng
+     * @since
+     */
+    public $reuse_port = false;
+
+    
 
     /**
      * @var array 服务器选项
@@ -73,35 +91,107 @@ class WebSocketServer extends BaseObject
             throw new InvalidConfigException('The "app" property mus be set.');
         }
 
-        if (!$this->server instanceof \Swoole\WebSocket\Server) {
-            if ($this->type == 'ws') {
-                $this->server = new \Swoole\WebSocket\Server($this->host, $this->port, $this->mode, $this->sockType);
-            } else {
-                $this->server = new \Swoole\WebSocket\Server($this->host, $this->port, $this->mode, $this->sockType | SWOOLE_SSL);
+        go(function () {
+            if (!$this->server instanceof \Swoole\Coroutine\Http\Server) {
+                if ($this->type == 'ws') {
+                    $this->server = new Server($this->host, $this->port, false,$this->reuse_port);
+                } else {
+                    $this->server = new Server($this->host, $this->port, true,$this->reuse_port);
+
+                }
+                // $this->server->set($this->options);
+                $this->server->handle('/', function (Request $request, Response $ws) {
+                    $this->handles($request, $ws);
+                });
             }
 
-            $this->server->set($this->options);
-        }
-        
+            $this->server->start();
+        });
+
         $this->addlistenerPort();
 
-        $this->addEvents();
+        // $this->addEvents();
+    }
+
+    public function handles(Request $request, Response $ws)
+    {
+        $ws->upgrade();
+        while (true) {
+            $frame = $ws->recv();
+            if ($frame === '') {
+                $this->close($request, $ws);
+                break;
+            } else if ($frame === false) {
+                echo 'errorCode: ' . swoole_last_error() . "\n";
+                $this->close($request, $ws);
+                break;
+            } else {
+                if ($frame->data == 'close' || get_class($frame) === CloseFrame::class) {
+                    $this->close($request, $ws);
+                    break;
+                }
+                $this->message($request,$ws);
+            }
+        }
     }
 
     public function addlistenerPort()
     {
-           
+        
+    }
+
+    public function close(Request $request, Response $ws)
+    {
+        $ws->close();
+    }
+
+    /**
+     * 响应消息处理 swoole-cli ./ddswoole socket/run --bloc_id=1 --store_id=1 --addons=diandi_watches
+     * @param Type|null $var
+     * @return void
+     * @date 2022-09-02
+     * @example
+     * @author Wang Chunsheng
+     * @since
+     */
+    private function message(Request $request, Response $ws)
+    {   
+        $frame = $ws->recv();
+        if (!($message = json_decode($frame->data, true))) {
+            $ws->push($this->socketJson(401,'ERROR', '消息内容必须是json字符串'));
+            return false;
+        }
+
+        if (!$message['type']) {
+            $ws->push($this->socketJson(401,'ERROR', '消息类型type必须设置'));
+            return false;
+        }
+       
+        if ($message['type'] === 'HEARTBEAT') {
+            // 心跳
+            $ws->push($this->socketJson(200,'HEARTBEAT', '心跳成功'));
+
+            return false;
+        }
+
+        $this->messageReturn( $request,  $ws,$message);
+    }
+
+    // 系统校验后自己处理
+    public function messageReturn(Request $request, Response $ws,$message)
+    {
+        
     }
 
 
-    public function addEvents()
+    public function push(Request $request, Response $ws,String $data,$isMass= true)
     {
-        foreach ($this->events() as $event => $callback) {
-            if (method_exists($this, 'on' . $event)) {
-                $this->server->on($event, $callback);
-            }
+        if($isMass){
+            $frame = $ws->recv();
+            $ws->push("Hello 112 {$frame->data}!");
         }
     }
+
 
     /**
      * 服务运行入口.
@@ -148,35 +238,6 @@ class WebSocketServer extends BaseObject
         }
     }
 
-    /**
-     * 事件监听.
-     *
-     * @return array
-     */
-    public function events()
-    {
-        $events = [
-            'start' => [$this, 'onStart'],
-            'workerStart' => [$this, 'onWorkerStart'],
-            'handshake' => [$this, 'onHandshake'],
-            'workerError' => [$this, 'onWorkerError'],
-            'open' => [$this, 'onOpen'],
-            'receive' => [$this, 'onReceive'],
-            'message' => [$this, 'onMessage'],
-            'close' => [$this, 'onClose'],
-            'shutdown' => [$this, 'onShutdown'],
-        ];
-
-        if (isset($this->options['task_worker_num'])) {
-            $events['task'] = [$this, 'onTask'];
-            $events['finish'] = [$this, 'onFinish'];
-            if (isset($this->options['task_enable_coroutine']) && $this->options['task_enable_coroutine']) {
-                $events['task'] = [$this, 'onCorTask'];
-            }
-        }
-
-        return $events;
-    }
 
     /**
      * 启动服务器.
@@ -188,107 +249,26 @@ class WebSocketServer extends BaseObject
         return $this->server->start();
     }
 
+
+    
     /**
-     * master启动.
+     * 返回json字符串数据格式.
      *
-     * @param \Swoole\Http\Server $server
+     * @param int          $code    状态码
+     * @param string       $message 返回的报错信息
+     * @param array|object $data    返回的数据结构
      */
-    public function onStart(\Swoole\WebSocket\Server $server)
+    private  function socketJson($code,$type,  $message='', $data=[])
     {
-        printf("listen on %s:%d\n", $this->host, $this->port);
-    }
+        $result = [
+            'type' => $type,
+            'data' => [
+                'code' => (int) $code,
+                'message' => trim($message),
+                'data' => $data ? ArrayHelper::toArray($data) : [],
+            ],
+        ];
 
-    /**
-     * 工作进程启动时实例化框架.
-     *
-     * @param \Swoole\Http\Server $server
-     * @param int                 $workerId
-     *
-     * @throws InvalidConfigException
-     */
-    public function onWorkerStart(\Swoole\WebSocket\Server $server, $workerId)
-    {
-
-    }
-
-    /**
-     * 工作进程异常.
-     *
-     * @param \Swoole\Http\Server $server
-     * @param $workerId
-     * @param $workerPid
-     * @param $exitCode
-     * @param $signal
-     */
-    public function onWorkerError(\Swoole\WebSocket\Server $server, $workerId, $workerPid, $exitCode, $signal)
-    {
-        fprintf(STDERR, "worker error. id=%d pid=%d code=%d signal=%d\n", $workerId, $workerPid, $exitCode, $signal);
-    }
-
-    public function onHandshake(\Swoole\Http\Request $request, \Swoole\Http\Response $response)
-    {
-
-    }
-
-    /**
-     * 开启连接.
-     *
-     * @param $server
-     * @param $frame
-     */
-    public function onOpen(\Swoole\WebSocket\Server $server, $frame)
-    {
-    }
-
-    /**
-     * 消息.
-     *
-     * @param $server
-     * @param $frame
-     *
-     * @throws \Exception
-     */
-    public function onMessage(\Swoole\WebSocket\Server $server, $frame)
-    {
-
-    }
-
-    public function onShutdown(\Swoole\WebSocket\Server $server)
-    {
-
-    }
-
-    /**
-     * 关闭连接.
-     *
-     * @param $server
-     * @param $fd
-     */
-    public function onClose(\Swoole\WebSocket\Server $server, $fd)
-    {
-
-    }
-
-    /**
-     * 处理异步任务
-     *
-     * @param $server
-     * @param $task_id
-     * @param $from_id
-     * @param $data
-     */
-    public function onTask(\Swoole\WebSocket\Server $server, $task_id, $from_id, $data)
-    {
-    }
-
-    /**
-     * 处理异步任务的结果.
-     *
-     * @param $server
-     * @param $task_id
-     * @param $data
-     */
-    public function onFinish(\Swoole\WebSocket\Server $server, $task_id, $data)
-    {
+        return json_encode($result);
     }
 }
