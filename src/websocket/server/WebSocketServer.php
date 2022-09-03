@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-02 21:44:34
+ * @Last Modified time: 2022-09-03 08:17:23
  */
 
 namespace diandi\swoole\websocket\server;
@@ -16,6 +16,7 @@ use Swoole\Http\Response;
 use Swoole\WebSocket\CloseFrame;
 use yii\base\BaseObject;
 use yii\helpers\ArrayHelper;
+use Swoole\Coroutine\Channel;
 
 /**
  * 长连接.
@@ -54,6 +55,9 @@ class WebSocketServer extends BaseObject
     public $reuse_port = false;
 
     
+    public $channel;
+
+    public $channelNum = 1;
 
     /**
      * @var array 服务器选项
@@ -91,6 +95,8 @@ class WebSocketServer extends BaseObject
             throw new InvalidConfigException('The "app" property mus be set.');
         }
 
+        $this->channel = new Channel($this->channelNum);
+
         go(function () {
             if (!$this->server instanceof \Swoole\Coroutine\Http\Server) {
                 if ($this->type == 'ws') {
@@ -102,15 +108,17 @@ class WebSocketServer extends BaseObject
                 // $this->server->set($this->options);
                 $this->server->handle('/', function (Request $request, Response $ws) {
                     $this->handles($request, $ws);
+                    
                 });
             }
-
             $this->server->start();
         });
 
-        $this->addlistenerPort();
-
-        // $this->addEvents();
+     
+        go(function(){
+            $this->addlistenerPort($this->channel);
+        });
+       
     }
 
     public function handles(Request $request, Response $ws)
@@ -135,7 +143,15 @@ class WebSocketServer extends BaseObject
         }
     }
 
-    public function addlistenerPort()
+    /**
+     * 扩展新的服务
+     * @return void
+     * @date 2022-09-02
+     * @example
+     * @author Wang Chunsheng
+     * @since
+     */
+    public function addlistenerPort($channel)
     {
         
     }
@@ -173,12 +189,12 @@ class WebSocketServer extends BaseObject
 
             return false;
         }
-
-        $this->messageReturn( $request,  $ws,$message);
+        
+        $this->messageReturn( $request,  $ws,$message,$this->channel);
     }
 
     // 系统校验后自己处理
-    public function messageReturn(Request $request, Response $ws,$message)
+    public function messageReturn(Request $request, Response $ws,$message,$channel)
     {
         
     }
