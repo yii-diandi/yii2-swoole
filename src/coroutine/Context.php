@@ -3,17 +3,15 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2022-08-27 15:04:10
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-27 15:05:50
+ * @Last Modified time: 2022-09-05 00:28:39
  */
 
 namespace diandi\swoole\coroutine;
 
-use diandi\swoole\web\Request;
-use diandi\swoole\web\Response;
+use yii\base\Component;
 use yii\base\InvalidValueException;
 
-
-class Context
+class Context extends Component
 {
     /**
      * 请求数据共享区
@@ -80,7 +78,7 @@ class Context
     public static function getContextDataByKey(string $key, $default = null)
     {
         $coroutineId = self::getcoroutine();
-        if(isset(self::$coroutineLocal[$coroutineId][self::COROUTINE_DATA][$key])){
+        if (isset(self::$coroutineLocal[$coroutineId][self::COROUTINE_DATA][$key])) {
             return self::$coroutineLocal[$coroutineId][self::COROUTINE_DATA][$key];
         }
         return $default;
@@ -95,8 +93,8 @@ class Context
         if (isset(self::$coroutineLocal[$coroutineId])) {
             unset(self::$coroutineLocal[$coroutineId]);
         }
-        foreach (static::$stackTree as $key => $value){
-            if($coroutineId == $value){
+        foreach (static::$stackTree as $key => $value) {
+            if ($coroutineId == $value) {
                 unset(static::$stackTree[$key]);
             }
         }
@@ -113,7 +111,7 @@ class Context
     {
         $coroutineId = self::getcoroutine();
         if (!isset(self::$coroutineLocal[$coroutineId])) {
-            throw new InvalidValueException("协程上下文不存在，coroutineId=".$coroutineId);
+            throw new InvalidValueException("协程上下文不存在，coroutineId=" . $coroutineId);
         }
 
         $coroutineContext = self::$coroutineLocal[$coroutineId];
@@ -131,7 +129,7 @@ class Context
     public static function markParent($pid)
     {
         $coroutineId = \Swoole\Coroutine::getuid();
-        if($coroutineId == $pid){
+        if ($coroutineId == $pid) {
             return false;
         }
         static::$stackTree[$coroutineId] = $pid;
