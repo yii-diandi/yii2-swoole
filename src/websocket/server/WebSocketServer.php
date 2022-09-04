@@ -95,14 +95,6 @@ class WebSocketServer extends BaseObject
         if (empty($this->app)) {
             throw new InvalidConfigException('The "app" property mus be set.');
         }
-
-        // 全局注入上下文
-        Yii::$app->setComponents([
-            'context'=>[
-                'class'=> 'diandi\swoole\coroutine\Context'
-            ]
-        ]);
-
         $this->channel = new Channel($this->channelNum);
 
         go(function () {
