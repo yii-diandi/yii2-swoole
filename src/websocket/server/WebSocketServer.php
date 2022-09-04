@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-03 08:17:23
+ * @Last Modified time: 2022-09-04 23:31:06
  */
 
 namespace diandi\swoole\websocket\server;
@@ -17,6 +17,7 @@ use Swoole\WebSocket\CloseFrame;
 use yii\base\BaseObject;
 use yii\helpers\ArrayHelper;
 use Swoole\Coroutine\Channel;
+use Yii;
 
 /**
  * 长连接.
@@ -95,9 +96,17 @@ class WebSocketServer extends BaseObject
             throw new InvalidConfigException('The "app" property mus be set.');
         }
 
+        // 全局注入上下文
+        Yii::$app->setComponents([
+            'context'=>[
+                'class'=> 'diandi\swoole\coroutine\Context'
+            ]
+        ]);
+
         $this->channel = new Channel($this->channelNum);
 
         go(function () {
+            $this->ContextInit(0);
             if (!$this->server instanceof \Swoole\Coroutine\Http\Server) {
                 if ($this->type == 'ws') {
                     $this->server = new Server($this->host, $this->port, false,$this->reuse_port);
@@ -116,9 +125,27 @@ class WebSocketServer extends BaseObject
 
      
         go(function(){
+            $this->ContextInit(1);
             $this->addlistenerPort($this->channel);
         });
        
+    }
+
+    /**
+     * 上下文初始化.
+     *
+     * @return void
+     * @date 2022-09-04
+     *
+     * @example
+     *
+     * @author Li Jinfang
+     *
+     * @since
+     */
+    public function ContextInit($type)
+    {
+        
     }
 
     public function handles(Request $request, Response $ws)
@@ -158,6 +185,7 @@ class WebSocketServer extends BaseObject
 
     public function close(Request $request, Response $ws)
     {
+        Yii::$app->context->destory();
         $ws->close();
     }
 
