@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-05 11:01:55
+ * @Last Modified time: 2022-09-05 12:03:58
  */
 
 namespace diandi\swoole\websocket\server;
@@ -206,8 +206,10 @@ class WebSocketServer extends BaseObject
             $ws->push($this->socketJson(401, 'ERROR', '消息类型type必须设置'));
             return false;
         }
-        $this->heartbeat($ws, $message);
-        $this->messageReturn($request, $ws, $message, $this->channel);
+
+        if ($this->heartbeat($ws, $message)) {
+            $this->messageReturn($request, $ws, $message, $this->channel);
+        }
     }
 
     public function heartbeat($ws, $message)
