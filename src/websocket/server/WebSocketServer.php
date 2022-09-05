@@ -4,20 +4,20 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-04 23:31:06
+ * @Last Modified time: 2022-09-05 09:23:41
  */
 
 namespace diandi\swoole\websocket\server;
 
+use diandi\swoole\coroutine\Context;
 use function Swoole\Coroutine\run;
+use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\Http\Server;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoole\WebSocket\CloseFrame;
 use yii\base\BaseObject;
 use yii\helpers\ArrayHelper;
-use Swoole\Coroutine\Channel;
-use Yii;
 
 /**
  * 长连接.
@@ -44,7 +44,7 @@ class WebSocketServer extends BaseObject
     public $sockType = SWOOLE_SOCK_TCP;
 
     public $type = 'ws';
-    
+
     /**
      * bool $reuse_port
      * @var bool
@@ -55,7 +55,6 @@ class WebSocketServer extends BaseObject
      */
     public $reuse_port = false;
 
-    
     public $channel;
 
     public $channelNum = 1;
@@ -101,26 +100,25 @@ class WebSocketServer extends BaseObject
             $this->ContextInit(0);
             if (!$this->server instanceof \Swoole\Coroutine\Http\Server) {
                 if ($this->type == 'ws') {
-                    $this->server = new Server($this->host, $this->port, false,$this->reuse_port);
+                    $this->server = new Server($this->host, $this->port, false, $this->reuse_port);
                 } else {
-                    $this->server = new Server($this->host, $this->port, true,$this->reuse_port);
+                    $this->server = new Server($this->host, $this->port, true, $this->reuse_port);
 
                 }
                 // $this->server->set($this->options);
                 $this->server->handle('/', function (Request $request, Response $ws) {
                     $this->handles($request, $ws);
-                    
+
                 });
             }
             $this->server->start();
         });
 
-     
-        go(function(){
+        go(function () {
             $this->ContextInit(1);
             $this->addlistenerPort($this->channel);
         });
-       
+
     }
 
     /**
@@ -137,7 +135,7 @@ class WebSocketServer extends BaseObject
      */
     public function ContextInit($type)
     {
-        
+
     }
 
     public function handles(Request $request, Response $ws)
@@ -157,7 +155,7 @@ class WebSocketServer extends BaseObject
                     $this->close($request, $ws);
                     break;
                 }
-                $this->message($request,$ws);
+                $this->message($request, $ws);
             }
         }
     }
@@ -172,12 +170,12 @@ class WebSocketServer extends BaseObject
      */
     public function addlistenerPort($channel)
     {
-        
+
     }
 
     public function close(Request $request, Response $ws)
     {
-        Yii::$app->context->destory();
+        Context::destory();
         $ws->close();
     }
 
@@ -191,43 +189,41 @@ class WebSocketServer extends BaseObject
      * @since
      */
     private function message(Request $request, Response $ws)
-    {   
+    {
         $frame = $ws->recv();
         if (!($message = json_decode($frame->data, true))) {
-            $ws->push($this->socketJson(401,'ERROR', '消息内容必须是json字符串'));
+            $ws->push($this->socketJson(401, 'ERROR', '消息内容必须是json字符串'));
             return false;
         }
 
         if (!$message['type']) {
-            $ws->push($this->socketJson(401,'ERROR', '消息类型type必须设置'));
+            $ws->push($this->socketJson(401, 'ERROR', '消息类型type必须设置'));
             return false;
         }
-       
+
         if ($message['type'] === 'HEARTBEAT') {
             // 心跳
-            $ws->push($this->socketJson(200,'HEARTBEAT', '心跳成功'));
+            $ws->push($this->socketJson(200, 'HEARTBEAT', '心跳成功'));
 
             return false;
         }
-        
-        $this->messageReturn( $request,  $ws,$message,$this->channel);
+
+        $this->messageReturn($request, $ws, $message, $this->channel);
     }
 
     // 系统校验后自己处理
-    public function messageReturn(Request $request, Response $ws,$message,$channel)
+    public function messageReturn(Request $request, Response $ws, $message, $channel)
     {
-        
+
     }
 
-
-    public function push(Request $request, Response $ws,String $data,$isMass= true)
+    public function push(Request $request, Response $ws, String $data, $isMass = true)
     {
-        if($isMass){
+        if ($isMass) {
             $frame = $ws->recv();
             $ws->push("Hello 112 {$frame->data}!");
         }
     }
-
 
     /**
      * 服务运行入口.
@@ -274,7 +270,6 @@ class WebSocketServer extends BaseObject
         }
     }
 
-
     /**
      * 启动服务器.
      *
@@ -285,8 +280,6 @@ class WebSocketServer extends BaseObject
         return $this->server->start();
     }
 
-
-    
     /**
      * 返回json字符串数据格式.
      *
@@ -294,7 +287,7 @@ class WebSocketServer extends BaseObject
      * @param string       $message 返回的报错信息
      * @param array|object $data    返回的数据结构
      */
-    private  function socketJson($code,$type,  $message='', $data=[])
+    private function socketJson($code, $type, $message = '', $data = [])
     {
         $result = [
             'type' => $type,
