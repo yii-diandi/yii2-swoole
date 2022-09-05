@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-05 09:23:41
+ * @Last Modified time: 2022-09-05 10:42:16
  */
 
 namespace diandi\swoole\websocket\server;
@@ -57,6 +57,8 @@ class WebSocketServer extends BaseObject
 
     public $channel;
 
+    public $channelListener;
+
     public $channelNum = 1;
 
     /**
@@ -94,7 +96,11 @@ class WebSocketServer extends BaseObject
         if (empty($this->app)) {
             throw new InvalidConfigException('The "app" property mus be set.');
         }
+
+        // 给websocket启用一个通道
         $this->channel = new Channel($this->channelNum);
+        // 给tcp启用一个通道
+        $this->channelListener = new Channel($this->channelNum);
 
         go(function () {
             $this->ContextInit(0);
@@ -116,7 +122,7 @@ class WebSocketServer extends BaseObject
 
         go(function () {
             $this->ContextInit(1);
-            $this->addlistenerPort($this->channel);
+            $this->addlistenerPort($this->channelListener);
         });
 
     }
@@ -168,7 +174,7 @@ class WebSocketServer extends BaseObject
      * @author Wang Chunsheng
      * @since
      */
-    public function addlistenerPort($channel)
+    public function addlistenerPort($channelListener)
     {
 
     }
