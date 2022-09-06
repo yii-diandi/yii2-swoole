@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-07 00:01:06
+ * @Last Modified time: 2022-09-07 00:41:07
  */
 
 namespace diandi\swoole\tcp\server;
@@ -101,10 +101,10 @@ class TcpServer extends BaseObject
 
         $this->ContextInit(0);
         //多进程管理模块
-        $this->pool = new Process\Pool($this->ProcessNum);
+        $this->pools = new Process\Pool($this->ProcessNum);
         //让每个OnWorkerStart回调都自动创建一个协程
-        $this->pool->set($this->options);
-        $this->pool->on('workerStart', function ($pool, $id) {
+        $this->pools->set($this->options);
+        $this->pools->on('workerStart', function ($pool, $id) {
             //每个进程都监听9501端口
             $this->server = new Swoole\Coroutine\Server($this->host, $this->port, false, $this->reuse_port);
 
