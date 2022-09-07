@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-07 11:23:41
+ * @Last Modified time: 2022-09-07 12:32:02
  */
 
 namespace diandi\swoole\tcp\server;
@@ -128,7 +128,7 @@ class TcpServer extends BaseObject
 
         while (true) {
             //接收数据
-            $data = $conn->recv(1);
+            $data = $conn->recv();
             if ($data === '' || $data === false) {
                 $errCode = swoole_last_error();
                 $errMsg = socket_strerror($errCode);
@@ -136,8 +136,6 @@ class TcpServer extends BaseObject
                 $conn->close();
                 break;
             }
-            //发送数据
-            $this->send($conn, 'hello');
             $this->messageReturn($conn);
         }
     }
