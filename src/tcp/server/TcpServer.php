@@ -91,6 +91,7 @@ class TcpServer extends BaseObject
         }
 
         $this->ContextInit(0);
+		
         //多进程管理模块
         $this->pools = new Process\Pool($this->ProcessNum);
         //让每个OnWorkerStart回调都自动创建一个协程
