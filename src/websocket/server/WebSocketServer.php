@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-05 12:03:58
+ * @Last Modified time: 2022-09-07 16:33:52
  */
 
 namespace diandi\swoole\websocket\server;
@@ -111,8 +111,10 @@ class WebSocketServer extends BaseObject
                     $this->server = new Server($this->host, $this->port, true, $this->reuse_port);
 
                 }
-                // $this->server->set($this->options);
+                $this->server->set($this->options);
                 $this->server->handle('/', function (Request $request, Response $ws) {
+                    // websocket通道消息处理
+                    $this->messageChannel();
                     $this->handles($request, $ws);
 
                 });
@@ -142,6 +144,19 @@ class WebSocketServer extends BaseObject
     public function ContextInit($type)
     {
 
+    }
+
+    /**
+     * websocket通道消息监听处理
+     * @return void
+     * @date 2022-09-07
+     * @example
+     * @author Wang Chunsheng
+     * @since
+     */    
+    public function messageChannel()
+    {
+        
     }
 
     public function handles(Request $request, Response $ws)
@@ -208,6 +223,7 @@ class WebSocketServer extends BaseObject
         }
 
         if ($this->heartbeat($ws, $message)) {
+            
             $this->messageReturn($request, $ws, $message, $this->channel);
         }
     }
