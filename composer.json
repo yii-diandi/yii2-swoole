@@ -1,6 +1,6 @@
 {
     "name": "yii-diandi/yii2-swoole",
-    "description": "run yii2 in swoole coroutine mode",
+    "description": "run yii2 in swoole coroutine mode，基于店滴云开源框架的swoole扩展",
     "keywords": [
         "yii2",
         "swoole",
