@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-07 16:33:52
+ * @Last Modified time: 2022-09-07 16:35:52
  */
 
 namespace diandi\swoole\websocket\server;
@@ -114,7 +114,7 @@ class WebSocketServer extends BaseObject
                 $this->server->set($this->options);
                 $this->server->handle('/', function (Request $request, Response $ws) {
                     // websocket通道消息处理
-                    $this->messageChannel();
+                    $this->messageChannel($request, $ws);
                     $this->handles($request, $ws);
 
                 });
@@ -154,7 +154,7 @@ class WebSocketServer extends BaseObject
      * @author Wang Chunsheng
      * @since
      */    
-    public function messageChannel()
+    public function messageChannel(Request $request, Response $ws)
     {
         
     }
