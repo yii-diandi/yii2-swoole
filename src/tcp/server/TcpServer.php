@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-07 08:57:20
+ * @Last Modified time: 2022-09-07 09:48:19
  */
 
 namespace diandi\swoole\tcp\server;
@@ -69,6 +69,7 @@ class TcpServer extends BaseObject
         'log_file' => '',
         'log_level' => 0,
     ];
+
     /**
      * @var array 应用配置
      */
@@ -91,7 +92,7 @@ class TcpServer extends BaseObject
         }
 
         $this->ContextInit(0);
-		
+
         //多进程管理模块
         $this->pools = new Process\Pool($this->ProcessNum);
         //让每个OnWorkerStart回调都自动创建一个协程
@@ -114,9 +115,6 @@ class TcpServer extends BaseObject
             $this->start();
 
         });
-
-        $this->poolStart();
-
     }
 
     /**
