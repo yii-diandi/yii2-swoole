@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-07 10:40:59
+ * @Last Modified time: 2022-09-07 11:23:41
  */
 
 namespace diandi\swoole\tcp\server;
@@ -38,6 +38,9 @@ class TcpServer extends BaseObject
      * @var int SOCKET类型
      */
     public $sockType = SWOOLE_SOCK_TCP;
+    
+    
+    public $ssl = false;
 
     /**
      * bool $reuse_port
@@ -90,7 +93,7 @@ class TcpServer extends BaseObject
 
         $this->ContextInit(0);
 
-        $this->server = new Swoole\Coroutine\Server($this->host, $this->port, $this->ssl, $this->reuse_port);
+        $this->server = new \Swoole\Coroutine\Server($this->host, $this->port, $this->ssl, $this->reuse_port);
 
         $this->server->set($this->options);
 
