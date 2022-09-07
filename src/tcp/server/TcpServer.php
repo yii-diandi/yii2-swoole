@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-07 09:48:19
+ * @Last Modified time: 2022-09-07 10:40:59
  */
 
 namespace diandi\swoole\tcp\server;
@@ -13,7 +13,6 @@ use function Swoole\Coroutine\run;
 use Swoole\Coroutine;
 use Swoole\Coroutine\Http\Server;
 use Swoole\Coroutine\Server\Connection;
-use Swoole\Process;
 use yii\base\BaseObject;
 
 /**
@@ -49,8 +48,6 @@ class TcpServer extends BaseObject
      * @since
      */
     public $reuse_port = false;
-
-    public $pools = null;
 
     public $ProcessNum = 1;
 
@@ -93,28 +90,17 @@ class TcpServer extends BaseObject
 
         $this->ContextInit(0);
 
-        //多进程管理模块
-        $this->pools = new Process\Pool($this->ProcessNum);
-        //让每个OnWorkerStart回调都自动创建一个协程
-        $this->pools->set($this->options);
-        $this->pools->on('workerStart', function ($pool, $id) {
-            //每个进程都监听9501端口
-            $this->server = new Swoole\Coroutine\Server($this->host, $this->port, false, $this->reuse_port);
+        $this->server = new Swoole\Coroutine\Server($this->host, $this->port, $this->ssl, $this->reuse_port);
 
-            //收到15信号关闭服务
-            Process::signal(SIGTERM, function () {
-                $this->shutdown();
-            });
+        $this->server->set($this->options);
 
-            //接收到新的连接请求 并自动创建一个协程
-            $this->server->handle(function (Connection $conn) {
-                $this->handles($conn);
-            });
-
-            //开始监听端口
-            $this->start();
-
+        //接收到新的连接请求 并自动创建一个协程
+        $this->server->handle(function (Connection $conn) {
+            $this->handles($conn);
         });
+
+        //开始监听端口
+        $this->start();
     }
 
     /**
@@ -134,7 +120,7 @@ class TcpServer extends BaseObject
 
     }
 
-    public function handles(Connection $conn)
+    private function handles(Connection $conn)
     {
 
         while (true) {
@@ -150,7 +136,6 @@ class TcpServer extends BaseObject
             //发送数据
             $this->send($conn, 'hello');
             $this->messageReturn($conn);
-            Coroutine::sleep(1);
         }
     }
 
@@ -239,16 +224,6 @@ class TcpServer extends BaseObject
     public function close()
     {
         return $this->server->close();
-    }
-
-    /**
-     * 启动进程管理.
-     *
-     * @return bool
-     */
-    public function poolStart()
-    {
-        return $this->pools->start();
     }
 
     /**
