@@ -4,24 +4,17 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-07 00:41:07
+ * @Last Modified time: 2022-09-07 08:57:20
  */
 
 namespace diandi\swoole\tcp\server;
 
-use diandi\swoole\coroutine\Context;
 use function Swoole\Coroutine\run;
-use Swoole\Coroutine\Channel;
-use Swoole\Coroutine\Http\Server;
-use Swoole\Http\Request;
-use Swoole\Http\Response;
-use Swoole\WebSocket\CloseFrame;
-use yii\base\BaseObject;
-use yii\helpers\ArrayHelper;
-use Swoole\Process;
 use Swoole\Coroutine;
+use Swoole\Coroutine\Http\Server;
 use Swoole\Coroutine\Server\Connection;
-
+use Swoole\Process;
+use yii\base\BaseObject;
 
 /**
  * tcpf服务.
@@ -47,7 +40,6 @@ class TcpServer extends BaseObject
      */
     public $sockType = SWOOLE_SOCK_TCP;
 
-
     /**
      * bool $reuse_port
      * @var bool
@@ -59,7 +51,6 @@ class TcpServer extends BaseObject
     public $reuse_port = false;
 
     public $pools = null;
-    
 
     public $ProcessNum = 1;
 
@@ -122,9 +113,9 @@ class TcpServer extends BaseObject
             $this->start();
 
         });
-    
+
         $this->poolStart();
-    
+
     }
 
     /**
@@ -146,7 +137,7 @@ class TcpServer extends BaseObject
 
     public function handles(Connection $conn)
     {
-        
+
         while (true) {
             //接收数据
             $data = $conn->recv(1);
@@ -158,8 +149,8 @@ class TcpServer extends BaseObject
                 break;
             }
             //发送数据
-            $this->send($conn,'hello');
-            $this->messageReturn($conn);            
+            $this->send($conn, 'hello');
+            $this->messageReturn($conn);
             Coroutine::sleep(1);
         }
     }
@@ -169,15 +160,13 @@ class TcpServer extends BaseObject
         $this->server->shutdown();
     }
 
-
-
     // 系统校验后自己处理
     public function messageReturn(Connection $conn)
     {
 
     }
 
-    public function send(Connection $conn,$content)
+    public function send(Connection $conn, $content)
     {
         if ($content) {
             $conn->send($content);
@@ -239,8 +228,21 @@ class TcpServer extends BaseObject
         return $this->server->start();
     }
 
+    /**
+     * 关闭服务
+     * @param Type|null $var
+     * @return void
+     * @date 2022-09-07
+     * @example
+     * @author Wang Chunsheng
+     * @since
+     */
+    public function close()
+    {
+        return $this->server->close();
+    }
 
-     /**
+    /**
      * 启动进程管理.
      *
      * @return bool
@@ -248,5 +250,19 @@ class TcpServer extends BaseObject
     public function poolStart()
     {
         return $this->pools->start();
+    }
+
+    /**
+     * 得到当前连接的 Socket 对象
+     * @return void
+     * @date 2022-09-07
+     * @example
+     * @author Wang Chunsheng
+     * @since
+     */
+    public function exportSocket()
+    {
+        return $this->server->exportSocket();
+
     }
 }
