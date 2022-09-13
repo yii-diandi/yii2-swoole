@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-13 20:15:19
+ * @Last Modified time: 2022-09-13 20:31:12
  */
 
 namespace diandi\swoole\websocket\server;
@@ -109,7 +109,6 @@ class WebSocketServer extends BaseObject
                     $this->server = new Server($this->host, $this->port, false, $this->reuse_port);
                 } else {
                     $this->server = new Server($this->host, $this->port, true, $this->reuse_port);
-
                 }
                 $this->server->set($this->options);
                 $this->server->handle('/', function (Request $request, Response $ws) {
@@ -170,6 +169,8 @@ class WebSocketServer extends BaseObject
     public function handles(Request $request, Response $ws)
     {
         global $wsObjects;
+        $objectId = spl_object_id($ws);
+
         while (true) {
             $frame = $ws->recv();
             if ($frame === '') {
