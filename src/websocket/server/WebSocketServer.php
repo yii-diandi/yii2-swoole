@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-08 21:44:00
+ * @Last Modified time: 2022-09-13 20:15:19
  */
 
 namespace diandi\swoole\websocket\server;
@@ -96,7 +96,7 @@ class WebSocketServer extends BaseObject
         if (empty($this->app)) {
             throw new InvalidConfigException('The "app" property mus be set.');
         }
-
+        
         // 给websocket启用一个通道
         $this->channel = new Channel($this->channelNum);
         // 给tcp启用一个通道
@@ -113,6 +113,10 @@ class WebSocketServer extends BaseObject
                 }
                 $this->server->set($this->options);
                 $this->server->handle('/', function (Request $request, Response $ws) {
+                    $this->checkUpgrade($request, $ws);
+                    global $wsObjects;
+                    $objectId = spl_object_id($ws);
+                    $wsObjects[$objectId] = $ws;
                     // websocket通道消息处理
                     $this->messageChannel($request, $ws);
                     $this->handles($request, $ws);
@@ -126,6 +130,11 @@ class WebSocketServer extends BaseObject
             $this->addlistenerPort($this->channelListener);
         });
 
+    }
+
+    public function checkUpgrade(Request $request, Response $ws)
+    {
+        $ws->upgrade();
     }
 
     /**
@@ -160,18 +169,21 @@ class WebSocketServer extends BaseObject
 
     public function handles(Request $request, Response $ws)
     {
-        $ws->upgrade();
+        global $wsObjects;
         while (true) {
             $frame = $ws->recv();
             if ($frame === '') {
+                unset($wsObjects[$objectId]);
                 $this->close($request, $ws);
                 break;
             } else if ($frame === false) {
                 echo 'errorCode: ' . swoole_last_error() . "\n";
+                unset($wsObjects[$objectId]);
                 $this->close($request, $ws);
                 break;
             } else {
                 if ($frame->data == 'close' || get_class($frame) === CloseFrame::class) {
+                    unset($wsObjects[$objectId]);
                     $this->close($request, $ws);
                     break;
                 }
