@@ -4,19 +4,19 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-13 20:31:12
+ * @Last Modified time: 2022-09-14 14:46:56
  */
 
 namespace diandi\swoole\websocket\server;
 
 use diandi\swoole\coroutine\Context;
-use function Swoole\Coroutine\run;
 use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\Http\Server;
+use function Swoole\Coroutine\run;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoole\WebSocket\CloseFrame;
-use yii\base\BaseObject;
+use yii\base\Component;
 use yii\helpers\ArrayHelper;
 
 /**
@@ -24,7 +24,7 @@ use yii\helpers\ArrayHelper;
  *
  * Class WebSocketServer
  */
-class WebSocketServer extends BaseObject
+class WebSocketServer extends Component
 {
     /**
      * @var string 监听主机
@@ -46,11 +46,15 @@ class WebSocketServer extends BaseObject
     public $type = 'ws';
 
     /**
-     * bool $reuse_port
+     * bool $reuse_port.
+     *
      * @var bool
      * @date 2022-09-02
+     *
      * @example
+     *
      * @author Wang Chunsheng
+     *
      * @since
      */
     public $reuse_port = false;
@@ -96,7 +100,7 @@ class WebSocketServer extends BaseObject
         if (empty($this->app)) {
             throw new InvalidConfigException('The "app" property mus be set.');
         }
-        
+
         // 给websocket启用一个通道
         $this->channel = new Channel($this->channelNum);
         // 给tcp启用一个通道
@@ -128,7 +132,6 @@ class WebSocketServer extends BaseObject
             $this->ContextInit(1);
             $this->addlistenerPort($this->channelListener);
         });
-
     }
 
     public function checkUpgrade(Request $request, Response $ws)
@@ -150,20 +153,22 @@ class WebSocketServer extends BaseObject
      */
     public function ContextInit($type)
     {
-
     }
 
     /**
-     * websocket通道消息监听处理
+     * websocket通道消息监听处理.
+     *
      * @return void
      * @date 2022-09-07
+     *
      * @example
+     *
      * @author Wang Chunsheng
+     *
      * @since
-     */    
+     */
     public function messageChannel(Request $request, Response $ws)
     {
-        
     }
 
     public function handles(Request $request, Response $ws)
@@ -177,8 +182,8 @@ class WebSocketServer extends BaseObject
                 unset($wsObjects[$objectId]);
                 $this->close($request, $ws);
                 break;
-            } else if ($frame === false) {
-                echo 'errorCode: ' . swoole_last_error() . "\n";
+            } elseif ($frame === false) {
+                echo 'errorCode: '.swoole_last_error()."\n";
                 unset($wsObjects[$objectId]);
                 $this->close($request, $ws);
                 break;
@@ -195,15 +200,18 @@ class WebSocketServer extends BaseObject
 
     /**
      * 扩展新的服务
+     *
      * @return void
      * @date 2022-09-02
+     *
      * @example
+     *
      * @author Wang Chunsheng
+     *
      * @since
      */
     public function addlistenerPort($channelListener)
     {
-
     }
 
     public function close(Request $request, Response $ws)
@@ -213,12 +221,15 @@ class WebSocketServer extends BaseObject
     }
 
     /**
-     * 响应消息处理 swoole-cli ./ddswoole socket/run --bloc_id=1 --store_id=1 --addons=diandi_watches
-     * @param Type|null $var
+     * 响应消息处理 swoole-cli ./ddswoole socket/run --bloc_id=1 --store_id=1 --addons=diandi_watches.
+     *
      * @return void
      * @date 2022-09-02
+     *
      * @example
+     *
      * @author Wang Chunsheng
+     *
      * @since
      */
     private function message(Request $request, Response $ws)
@@ -226,11 +237,13 @@ class WebSocketServer extends BaseObject
         $frame = $ws->recv();
         if (!($message = json_decode($frame->data, true))) {
             $ws->push($this->socketJson(401, 'ERROR', '消息内容必须是json字符串'));
+
             return false;
         }
 
         if (!$message['type']) {
             $ws->push($this->socketJson(401, 'ERROR', '消息类型type必须设置'));
+
             return false;
         }
         $this->heartbeat($ws, $message);
@@ -245,16 +258,16 @@ class WebSocketServer extends BaseObject
 
             return false;
         }
+
         return true;
     }
 
     // 系统校验后自己处理
     public function messageReturn(Request $request, Response $ws, $message, $channel)
     {
-
     }
 
-    public function push(Request $request, Response $ws, String $data, $isMass = true)
+    public function push(Request $request, Response $ws, string $data, $isMass = true)
     {
         if ($isMass) {
             $frame = $ws->recv();
@@ -269,7 +282,7 @@ class WebSocketServer extends BaseObject
     {
         global $argv;
         if (!isset($argv[0], $argv[1])) {
-            print_r('invalid run params,see help,run like:php http-server.php start|stop|reload' . PHP_EOL);
+            print_r('invalid run params,see help,run like:php http-server.php start|stop|reload'.PHP_EOL);
 
             return;
         }
@@ -280,7 +293,7 @@ class WebSocketServer extends BaseObject
         $masterPid = file_exists($pidFile) ? file_get_contents($pidFile) : null;
         if ($command == 'start') {
             if ($masterPid > 0 and posix_kill($masterPid, 0)) {
-                print_r('Server is already running. Please stop it first.' . PHP_EOL);
+                print_r('Server is already running. Please stop it first.'.PHP_EOL);
                 exit;
             }
 
@@ -293,7 +306,7 @@ class WebSocketServer extends BaseObject
                     unlink($pidFile);
                 }
             } else {
-                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGTERM.' . PHP_EOL);
+                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGTERM.'.PHP_EOL);
             }
             exit;
         } elseif ($command == 'reload') {
@@ -301,7 +314,7 @@ class WebSocketServer extends BaseObject
                 posix_kill($masterPid, SIGUSR1); // reload all worker
                 //                posix_kill($masterPid, SIGUSR2); // reload all task
             } else {
-                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGUSR1.' . PHP_EOL);
+                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGUSR1.'.PHP_EOL);
             }
             exit;
         }
