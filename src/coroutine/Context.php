@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2022-08-27 15:04:10
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-05 00:39:45
+ * @Last Modified time: 2022-09-14 19:42:21
  */
 
 namespace diandi\swoole\coroutine;
@@ -14,19 +14,19 @@ use yii\base\InvalidValueException;
 class Context extends Component
 {
     /**
-     * 请求数据共享区
+     * 请求数据共享区.
      */
-    const COROUTINE_DATA = "data";
+    const COROUTINE_DATA = 'data';
 
     /**
-     * 当前请求 container
+     * 当前请求 container.
      */
-    const COROUTINE_CONTAINER = "container";
+    const COROUTINE_CONTAINER = 'container';
 
     /**
-     * 当前请求 Application
+     * 当前请求 Application.
      */
-    const COROUTINE_APP = "app";
+    const COROUTINE_APP = 'app';
 
     /**
      * @var array 协程数据保存
@@ -41,7 +41,7 @@ class Context extends Component
     }
 
     /**
-     * 请求共享数据
+     * 请求共享数据.
      *
      * @return array
      */
@@ -51,9 +51,7 @@ class Context extends Component
     }
 
     /**
-     * 初始化数据共享
-     *
-     * @param array $contextData
+     * 初始化数据共享.
      */
     public static function setContextData(array $contextData = [])
     {
@@ -64,8 +62,7 @@ class Context extends Component
     /**
      * 设置或修改，当前请求数据共享值
      *
-     * @param string $key
-     * @param mixed  $val
+     * @param mixed $val
      */
     public static function setContextDataByKey(string $key, $val)
     {
@@ -76,8 +73,8 @@ class Context extends Component
     /**
      * 获取当前请求数据一个KEY的值
      *
-     * @param string $key
      * @param mixed $default
+     *
      * @return mixed
      */
     public static function getContextDataByKey(string $key, $default = null)
@@ -86,11 +83,12 @@ class Context extends Component
         if (isset(self::$coroutineLocal[$coroutineId][self::COROUTINE_DATA][$key])) {
             return self::$coroutineLocal[$coroutineId][self::COROUTINE_DATA][$key];
         }
+
         return $default;
     }
 
     /**
-     * 销毁当前协程数据
+     * 销毁当前协程数据.
      */
     public static function destory()
     {
@@ -106,9 +104,9 @@ class Context extends Component
     }
 
     /**
-     * 获取协程上下文
+     * 获取协程上下文.
      *
-     * @param string $name  协程ID
+     * @param string $name 协程ID
      *
      * @return mixed|null
      */
@@ -116,19 +114,22 @@ class Context extends Component
     {
         $coroutineId = self::getcoroutine();
         if (!isset(self::$coroutineLocal[$coroutineId])) {
-            throw new InvalidValueException("协程上下文不存在，coroutineId=" . $coroutineId);
+            throw new InvalidValueException('协程上下文不存在，coroutineId='.$coroutineId);
         }
 
         $coroutineContext = self::$coroutineLocal[$coroutineId];
         if (isset($coroutineContext[$name])) {
             return $coroutineContext[$name];
         }
+
         return null;
     }
 
     /**
-     * markParent
+     * markParent.
+     *
      * @param $pid
+     *
      * @return bool
      */
     public static function markParent($pid)
@@ -138,17 +139,19 @@ class Context extends Component
             return false;
         }
         static::$stackTree[$coroutineId] = $pid;
+
         return true;
     }
 
     /**
-     * 协程ID
+     * 协程ID.
      *
      * @return int
      */
     public static function getcoroutine()
     {
         $coroutineId = \Swoole\Coroutine::getuid();
+
         return static::$stackTree[$coroutineId] ?? $coroutineId;
     }
 }
