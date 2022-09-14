@@ -4,12 +4,13 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-14 14:46:56
+ * @Last Modified time: 2022-09-14 15:22:39
  */
 
 namespace diandi\swoole\websocket\server;
 
 use diandi\swoole\coroutine\Context;
+use diandi\swoole\websocket\events\webSocketEvent;
 use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\Http\Server;
 use function Swoole\Coroutine\run;
@@ -26,6 +27,8 @@ use yii\helpers\ArrayHelper;
  */
 class WebSocketServer extends Component
 {
+    const EVENT_WEBSOCKET_BEFORE = 'websocket_berfore';
+
     /**
      * @var string 监听主机
      */
@@ -108,6 +111,9 @@ class WebSocketServer extends Component
 
         go(function () {
             $this->ContextInit(0);
+            $event = new webSocketEvent();
+            $event->cid = \Co::getCid();
+            $this->trigger(self::EVENT_WEBSOCKET_BEFORE, $event);
             if (!$this->server instanceof \Swoole\Coroutine\Http\Server) {
                 if ($this->type == 'ws') {
                     $this->server = new Server($this->host, $this->port, false, $this->reuse_port);
