@@ -82,6 +82,7 @@ class Server extends BaseObject
             $this->webServer = new \Swoole\Http\Server($this->host, $this->port, $this->mode, $this->sockType);
             $this->webServer->set($this->options);
         }
+		
         foreach ($this->events() as $event => $callback) {
             if (method_exists($this, 'on' . $event)) {
                 $this->webServer->on($event, $callback);
