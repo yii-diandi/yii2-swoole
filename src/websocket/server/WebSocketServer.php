@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-14 16:33:35
+ * @Last Modified time: 2022-09-14 18:12:05
  */
 
 namespace diandi\swoole\websocket\server;
@@ -18,6 +18,7 @@ use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoole\WebSocket\CloseFrame;
 use yii\base\Component;
+use yii\base\Event;
 use yii\helpers\ArrayHelper;
 
 /**
@@ -111,8 +112,7 @@ class WebSocketServer extends Component
 
         go(function () {
             $this->ContextInit(0);
-            $event = new webSocketEvent();
-            $event->cid = \Co::getCid();
+            $this->onBeforeEvent();
             $this->trigger(self::EVENT_WEBSOCKET_BEFORE, $event);
             if (!$this->server instanceof \Swoole\Coroutine\Http\Server) {
                 if ($this->type == 'ws') {
@@ -139,6 +139,13 @@ class WebSocketServer extends Component
         go(function () {
             $this->ContextInit(1);
             $this->addlistenerPort($this->channelListener);
+        });
+    }
+
+    public function onBeforeEvent()
+    {
+        Event::on(webSocketEvent::className(), self::EVENT_WEBSOCKET_BEFORE, function ($event) {
+            var_dump($event->cid);  // 显示 "null"
         });
     }
 
