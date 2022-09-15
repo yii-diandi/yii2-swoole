@@ -4,12 +4,11 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-15 15:10:12
+ * @Last Modified time: 2022-09-15 16:14:51
  */
 
 namespace diandi\swoole\websocket\server;
 
-use diandi\swoole\coroutine\Context;
 use diandi\swoole\websocket\events\webSocketEvent;
 use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\Http\Server;
@@ -123,9 +122,6 @@ class WebSocketServer extends Component
                 $this->server->handle('/', function (Request $request, Response $ws) {
                     if ($this->checkUpgrade($request, $ws)) {
                         $ws->upgrade();
-                        global $wsObjects;
-                        $objectId = spl_object_id($ws);
-                        $wsObjects[$objectId] = $ws;
                         // websocket通道消息处理
                         $this->messageChannel($request, $ws);
                         $this->handles($request, $ws);
@@ -223,11 +219,12 @@ class WebSocketServer extends Component
 
     public function close(Request $request, Response $ws)
     {
-        global $wsObjects;
-        $objectId = spl_object_id($ws);
-        Context::destory();
-        unset($wsObjects[$objectId]);
+        $this->destory();
         $ws->close();
+    }
+
+    public function destory()
+    {
     }
 
     /**
