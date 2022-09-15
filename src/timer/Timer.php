@@ -3,11 +3,10 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-21 01:43:33
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-24 17:35:06
+ * @Last Modified time: 2022-09-15 21:05:40
  */
 
 namespace diandi\swoole\timer;
-
 
 use Swoole\Coroutine;
 use yii\base\Exception;
@@ -18,8 +17,7 @@ use yii\base\InvalidParamException;
  * 定时器启动时,是启用新的协程,因此在通过Coroutine::getid()时需要注意,回调函数提供了定时器启动的协程ID
  * 回调函数
  *      function(Callback $cb,$jobId,$coroutineID)
- *      - $coroutineID 启动的协程ID
- * @package diandi\swoole\timer
+ *      - $coroutineID 启动的协程ID.
  */
 class Timer
 {
@@ -29,15 +27,16 @@ class Timer
 
     /**
      * 添加一个每隔 {$interval} 毫秒 执行一次的计时器任务
-     * @param int        $interval  单位: 毫秒
-     * @param callable   $callback
-     * @param string     $jobId   标识任务的唯一标识符，必须唯一
      *
-     * @return string    $jobId   timer job id
+     * @param int    $interval 单位: 毫秒
+     * @param string $jobId    标识任务的唯一标识符，必须唯一
+     *
+     * @return string $jobId   timer job id
+     *
      * @throws InvalidParamException
      * @throws Exception
      */
-    public static function tick($interval, Callable $callback, $jobId='')
+    public static function tick($interval, callable $callback, $jobId = '')
     {
         self::valid($interval);
         $jobId = self::formatJobId($jobId);
@@ -46,7 +45,7 @@ class Timer
             throw new Exception('job name is exist!');
         }
         $coroutineId = Coroutine::getuid();
-        $timerId = swoole_timer_tick($interval, self::formatTickCallback($jobId, $callback,$coroutineId));
+        $timerId = swoole_timer_tick($interval, self::formatTickCallback($jobId, $callback, $coroutineId));
         self::$tickMap[$jobId] = $timerId;
 
         return $jobId;
@@ -54,15 +53,16 @@ class Timer
 
     /**
      * 添加一个 {$interval} 毫秒后仅执行一次的计时器任务
-     * @param int        $interval  单位: 毫秒
-     * @param callable   $callback
-     * @param string     $jobId   标识任务的唯一标识符，必须唯一
      *
-     * @return string    $jobId timer job id
+     * @param int    $interval 单位: 毫秒
+     * @param string $jobId    标识任务的唯一标识符，必须唯一
+     *
+     * @return string $jobId timer job id
+     *
      * @throws InvalidParamException
      * @throws Exception
      */
-    public static function after($interval, callable $callback, $jobId='')
+    public static function after($interval, callable $callback, $jobId = '')
     {
         self::valid($interval);
         $jobId = self::formatJobId($jobId);
@@ -71,7 +71,7 @@ class Timer
             throw new Exception('job name is exist!');
         }
         $coroutineId = Coroutine::getuid();
-        $timerId = swoole_timer_after($interval, self::formatAfterCallback($jobId, $callback,$coroutineId));
+        $timerId = swoole_timer_after($interval, self::formatAfterCallback($jobId, $callback, $coroutineId));
         self::$afterMap[$jobId] = $timerId;
 
         return $jobId;
@@ -81,18 +81,19 @@ class Timer
      * 根据tick timer job id 清除一个计时器任务
      *
      * @param string $jobId
+     *
      * @return bool
      */
     public static function clearTickJob($jobId)
     {
-        if(!isset(self::$tickMap[$jobId])){
+        if (!isset(self::$tickMap[$jobId])) {
             return false;
         }
 
         $timerId = self::$tickMap[$jobId];
         $isCleared = swoole_timer_clear($timerId);
 
-        if($isCleared){
+        if ($isCleared) {
             unset(self::$tickMap[$jobId]);
         }
 
@@ -108,27 +109,33 @@ class Timer
      */
     public static function clearAfterJob($jobId)
     {
-        if(!isset(self::$afterMap[$jobId])){
+        if (!isset(self::$afterMap[$jobId])) {
             return false;
         }
 
         $timerId = self::$afterMap[$jobId];
         $isCleared = swoole_timer_clear($timerId);
 
-        if($isCleared){
+        if ($isCleared) {
             unset(self::$afterMap[$jobId]);
         }
 
         return $isCleared;
     }
 
+    public static function clearAll()
+    {
+        return  \Swoole\Timer::clearAll();
+    }
+
     /**
      * @param $key
+     *
      * @return bool
      */
     public static function clearTickMap($key)
     {
-        if(!$key) {
+        if (!$key) {
             return false;
         }
 
@@ -137,11 +144,12 @@ class Timer
 
     /**
      * @param $key
+     *
      * @return bool
      */
     public static function clearAfterMap($key)
     {
-        if(!$key) {
+        if (!$key) {
             return false;
         }
 
@@ -150,35 +158,35 @@ class Timer
 
     /**
      * @param $jobId
-     * @param callable $callback
      * @param $coroutineId
      *
      * @return \Closure
      */
-    private static function formatTickCallback($jobId, Callable $callback,$coroutineId)
+    private static function formatTickCallback($jobId, callable $callback, $coroutineId)
     {
         //创建当前任务的协程ID.
 
-        return function() use ($jobId, $callback,$coroutineId) {
-            $callback($jobId,$coroutineId);
+        return function () use ($jobId, $callback,$coroutineId) {
+            $callback($jobId, $coroutineId);
         };
     }
 
     /**
      * @param $jobId
-     * @param callable $callback
+     *
      * @return \Closure
      */
-    private static function formatAfterCallback($jobId, Callable $callback,$coroutineId)
+    private static function formatAfterCallback($jobId, callable $callback, $coroutineId)
     {
-        return function() use ($jobId, $callback,$coroutineId) {
+        return function () use ($jobId, $callback,$coroutineId) {
             Timer::clearAfterMap($jobId);
-            $callback($jobId,$coroutineId);
+            $callback($jobId, $coroutineId);
         };
     }
 
     /**
      * @param $interval
+     *
      * @throws InvalidParamException
      */
     private static function valid($interval)
@@ -194,26 +202,29 @@ class Timer
 
     /**
      * @param $jobId
+     *
      * @return string
      */
-    private static function formatJobId($jobId){
-        if($jobId){
+    private static function formatJobId($jobId)
+    {
+        if ($jobId) {
             return $jobId;
         }
+
         return self::createJobId();
     }
-
 
     /**
      * @return string
      */
     private static function createJobId()
     {
-        if(self::$counter >= PHP_INT_MAX){
+        if (self::$counter >= PHP_INT_MAX) {
             self::$counter = 0;
         }
 
-        self::$counter++;
-        return 'j_' . self::$counter;
+        ++self::$counter;
+
+        return 'j_'.self::$counter;
     }
 }
