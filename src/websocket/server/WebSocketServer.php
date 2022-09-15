@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-14 18:12:05
+ * @Last Modified time: 2022-09-15 09:50:35
  */
 
 namespace diandi\swoole\websocket\server;
@@ -113,7 +113,6 @@ class WebSocketServer extends Component
         go(function () {
             $this->ContextInit(0);
             $this->onBeforeEvent();
-            $this->trigger(self::EVENT_WEBSOCKET_BEFORE, $event);
             if (!$this->server instanceof \Swoole\Coroutine\Http\Server) {
                 if ($this->type == 'ws') {
                     $this->server = new Server($this->host, $this->port, false, $this->reuse_port);
