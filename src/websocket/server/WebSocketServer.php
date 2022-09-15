@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-15 16:14:51
+ * @Last Modified time: 2022-09-15 16:18:10
  */
 
 namespace diandi\swoole\websocket\server;
@@ -219,11 +219,11 @@ class WebSocketServer extends Component
 
     public function close(Request $request, Response $ws)
     {
-        $this->destory();
+        $this->destory($request, $ws);
         $ws->close();
     }
 
-    public function destory()
+    public function destory(Request $request, Response $ws)
     {
     }
 
