@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-15 09:50:35
+ * @Last Modified time: 2022-09-15 15:10:12
  */
 
 namespace diandi\swoole\websocket\server;
@@ -186,23 +186,17 @@ class WebSocketServer extends Component
 
     public function handles(Request $request, Response $ws)
     {
-        global $wsObjects;
-        $objectId = spl_object_id($ws);
-
         while (true) {
             $frame = $ws->recv();
             if ($frame === '') {
-                unset($wsObjects[$objectId]);
                 $this->close($request, $ws);
                 break;
             } elseif ($frame === false) {
                 echo 'errorCode: '.swoole_last_error()."\n";
-                unset($wsObjects[$objectId]);
                 $this->close($request, $ws);
                 break;
             } else {
                 if ($frame->data == 'close' || get_class($frame) === CloseFrame::class) {
-                    unset($wsObjects[$objectId]);
                     $this->close($request, $ws);
                     break;
                 }
@@ -229,7 +223,10 @@ class WebSocketServer extends Component
 
     public function close(Request $request, Response $ws)
     {
+        global $wsObjects;
+        $objectId = spl_object_id($ws);
         Context::destory();
+        unset($wsObjects[$objectId]);
         $ws->close();
     }
 
