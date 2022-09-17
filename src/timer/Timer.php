@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-21 01:43:33
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-15 21:05:40
+ * @Last Modified time: 2022-09-17 21:27:35
  */
 
 namespace diandi\swoole\timer;
@@ -42,7 +42,7 @@ class Timer
         $jobId = self::formatJobId($jobId);
 
         if (isset(self::$tickMap[$jobId])) {
-            throw new Exception('job name is exist!');
+            throw new Exception('job name('.self::$tickMap[$jobId].') is exist!');
         }
         $coroutineId = Coroutine::getuid();
         $timerId = swoole_timer_tick($interval, self::formatTickCallback($jobId, $callback, $coroutineId));
