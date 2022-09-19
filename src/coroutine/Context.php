@@ -3,13 +3,14 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2022-08-27 15:04:10
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-19 19:33:51
+ * @Last Modified time: 2022-09-19 20:03:14
  */
 
 namespace diandi\swoole\coroutine;
 
 use yii\base\Component;
 use yii\base\InvalidValueException;
+use yii\helpers\ArrayHelper;
 
 class Context extends Component
 {
@@ -77,7 +78,7 @@ class Context extends Component
         if (!is_array($oldArray)) {
             $oldArray = [];
         }
-        $newArray = array_merge($oldArray, $val);
+        $newArray = ArrayHelper::merge($oldArray, $val);
         self::setContextDataByKey($key, $newArray);
     }
 
