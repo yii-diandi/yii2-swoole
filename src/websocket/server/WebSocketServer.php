@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-19 19:33:00
+ * @Last Modified time: 2022-09-19 20:50:51
  */
 
 namespace diandi\swoole\websocket\server;
@@ -252,7 +252,11 @@ class WebSocketServer extends Component
 
             return false;
         }
-        $this->heartbeat($ws, $message);
+
+        if ($this->heartbeat($ws, $message)) {
+            return false;
+        }
+
         $this->messageReturn($request, $ws, $message, $this->channel);
     }
 
@@ -262,10 +266,10 @@ class WebSocketServer extends Component
             // 心跳
             $ws->push($this->socketJson(200, 'HEARTBEAT', '心跳成功'));
 
-            return false;
+            return true;
         }
 
-        return true;
+        return false;
     }
 
     // 系统校验后自己处理
