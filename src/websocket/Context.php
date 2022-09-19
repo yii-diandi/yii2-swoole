@@ -12,6 +12,7 @@ use diandi\swoole\coroutine\Context as CoroutineContext;
 
 class Context extends CoroutineContext
 {
+	
     /**
      * 请求数据共享区.
      */
