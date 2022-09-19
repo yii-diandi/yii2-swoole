@@ -4,11 +4,12 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-19 18:22:42
+ * @Last Modified time: 2022-09-19 19:33:00
  */
 
 namespace diandi\swoole\websocket\server;
 
+use diandi\swoole\websocket\Context;
 use diandi\swoole\websocket\events\webSocketEvent;
 use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\Http\Server;
@@ -69,6 +70,20 @@ class WebSocketServer extends Component
     public $channelNum = 1;
 
     /**
+     * Undocumented variable.
+     *
+     * @var [type]
+     * @date 2022-09-19
+     *
+     * @example
+     *
+     * @author Wang Chunsheng
+     *
+     * @since
+     */
+    public $context;
+
+    /**
      * @var array 服务器选项
      */
     public $options = [
@@ -108,9 +123,8 @@ class WebSocketServer extends Component
         $this->channel = new Channel($this->channelNum);
         // 给tcp启用一个通道
         $this->channelListener = new Channel($this->channelNum);
-
+        $this->ContextInit();
         go(function () {
-            $this->ContextInit(0);
             $this->onBeforeEvent();
             if (!$this->server instanceof \Swoole\Coroutine\Http\Server) {
                 if ($this->type == 'ws') {
@@ -120,6 +134,9 @@ class WebSocketServer extends Component
                 }
                 $this->server->set($this->options);
                 $this->server->handle('/', function (Request $request, Response $ws) {
+                    $objectId = spl_object_id($ws);
+                    $wsObjects[$objectId] = $ws;
+                    $this->context->addArray('wsObjects', $wsObjects);
                     if ($this->checkUpgrade($request, $ws)) {
                         $ws->upgrade();
                         $this->handles($request, $ws);
@@ -130,7 +147,6 @@ class WebSocketServer extends Component
         });
 
         go(function () {
-            $this->ContextInit(1);
             $this->addlistenerPort($this->channelListener);
         });
     }
@@ -158,8 +174,9 @@ class WebSocketServer extends Component
      *
      * @since
      */
-    public function ContextInit($type)
+    public function ContextInit()
     {
+        $this->context = new Context();
     }
 
     public function handles(Request $request, Response $ws)

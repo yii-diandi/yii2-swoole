@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2022-08-27 15:04:10
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-14 19:42:21
+ * @Last Modified time: 2022-09-19 19:33:51
  */
 
 namespace diandi\swoole\coroutine;
@@ -68,6 +68,25 @@ class Context extends Component
     {
         $coroutineId = self::getcoroutine();
         self::$coroutineLocal[$coroutineId][self::COROUTINE_DATA][$key] = $val;
+    }
+
+    public static function addArray(string $key, array $val)
+    {
+        // 去读已有的
+        $oldArray = self::getContextDataByKey($key);
+        if (!is_array($oldArray)) {
+            $oldArray = [];
+        }
+        $newArray = array_merge($oldArray, $val);
+        self::setContextDataByKey($key, $newArray);
+    }
+
+    public static function delArray(string $key, string $array_key)
+    {
+        // 去读已有的
+        $oldArray = self::getContextDataByKey($key);
+        unset($oldArray,$array_key);
+        self::setContextDataByKey($key, $oldArray);
     }
 
     /**
