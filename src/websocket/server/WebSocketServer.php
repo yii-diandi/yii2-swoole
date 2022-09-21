@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-21 15:45:47
+ * @Last Modified time: 2022-09-21 19:26:33
  */
 
 namespace diandi\swoole\websocket\server;
@@ -23,7 +23,7 @@ use yii\base\Event;
 use yii\helpers\ArrayHelper;
 
 /**
- * 长连接，配合其他服务扩展使用
+ * 长连接，配合其他服务扩展使用.
  *
  * Class WebSocketServer
  */
@@ -121,39 +121,6 @@ class WebSocketServer extends Component
         if (empty($this->app)) {
             throw new InvalidConfigException('The "app" property mus be set.');
         }
-
-        // 给websocket启用一个通道
-        $this->channel = new Channel($this->channelNum);
-        // 给tcp启用一个通道
-        $this->channelListener = new Channel($this->channelNum);
-        $this->ContextInit();
-        $status = Coroutine::join([
-            go(function () {
-                $this->onBeforeEvent();
-                if (!$this->server instanceof \Swoole\Coroutine\Http\Server) {
-                    if ($this->type == 'ws') {
-                        $this->server = new Server($this->host, $this->port, false, $this->reuse_port);
-                    } else {
-                        $this->server = new Server($this->host, $this->port, true, $this->reuse_port);
-                    }
-                    $this->server->set($this->options);
-                    $this->server->handle('/', function (Request $request, Response $ws) {
-                        $objectId = spl_object_id($ws);
-                        $wsObjects[$objectId] = $ws;
-                        $this->context->addArray('wsObjects', $wsObjects);
-                        if ($this->checkUpgrade($request, $ws)) {
-                            $ws->upgrade();
-                            $this->handles($request, $ws);
-                        }
-                    });
-                }
-                $this->server->start();
-            }),
-            go(function () {
-                $this->addlistenerPort($this->channelListener);
-            }),
-        ], 1);
-        var_dump($status, swoole_strerror(swoole_last_error(), 9));
     }
 
     public function onBeforeEvent()
@@ -293,7 +260,7 @@ class WebSocketServer extends Component
     /**
      * 服务运行入口.
      */
-    public function run()
+    public function run1()
     {
         global $argv;
         if (!isset($argv[0], $argv[1])) {
@@ -333,6 +300,48 @@ class WebSocketServer extends Component
             }
             exit;
         }
+    }
+
+	/**
+     * 服务运行入口.
+     */
+    public function run()
+    {
+        // 给websocket启用一个通道
+        $this->channel = new Channel($this->channelNum);
+        // 给tcp启用一个通道
+        $this->channelListener = new Channel($this->channelNum);
+        $this->ContextInit();
+        $status = Coroutine::join([
+             go(function () {
+                 $this->onBeforeEvent();
+                 if (!$this->server instanceof \Swoole\Coroutine\Http\Server) {
+                     if ($this->type == 'ws') {
+                         $this->server = new Server($this->host, $this->port, false, $this->reuse_port);
+                     } else {
+                         $this->server = new Server($this->host, $this->port, true, $this->reuse_port);
+                     }
+                     $this->server->set($this->options);
+                     $this->server->handle('/', function (Request $request, Response $ws) {
+                         $objectId = spl_object_id($ws);
+                         $wsObjects[$objectId] = $ws;
+                         $this->context->addArray('wsObjects', $wsObjects);
+                         if ($this->checkUpgrade($request, $ws)) {
+                             $ws->upgrade();
+                             $this->handles($request, $ws);
+                         }
+                     });
+                 }
+                 $this->server->start();
+             }),
+             go(function () {
+                 $this->addlistenerPort($this->channelListener);
+             }),
+         ]);
+
+        var_dump($status, swoole_strerror(swoole_last_error(), 9));
+
+        return $status;
     }
 
     /**
