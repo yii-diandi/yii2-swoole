@@ -23,7 +23,7 @@ use yii\base\Event;
 use yii\helpers\ArrayHelper;
 
 /**
- * 长连接.
+ * 长连接，配合其他服务扩展使用
  *
  * Class WebSocketServer
  */
