@@ -4,13 +4,14 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-19 20:50:51
+ * @Last Modified time: 2022-09-21 15:45:47
  */
 
 namespace diandi\swoole\websocket\server;
 
 use diandi\swoole\websocket\Context;
 use diandi\swoole\websocket\events\webSocketEvent;
+use Swoole\Coroutine;
 use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\Http\Server;
 use function Swoole\Coroutine\run;
@@ -98,10 +99,12 @@ class WebSocketServer extends Component
         'log_file' => '',
         'log_level' => 0,
     ];
+
     /**
      * @var array 应用配置
      */
     public $app = [];
+
     /**
      * @var \Swoole\Http\Server swoole server实例
      */
@@ -124,31 +127,33 @@ class WebSocketServer extends Component
         // 给tcp启用一个通道
         $this->channelListener = new Channel($this->channelNum);
         $this->ContextInit();
-        go(function () {
-            $this->onBeforeEvent();
-            if (!$this->server instanceof \Swoole\Coroutine\Http\Server) {
-                if ($this->type == 'ws') {
-                    $this->server = new Server($this->host, $this->port, false, $this->reuse_port);
-                } else {
-                    $this->server = new Server($this->host, $this->port, true, $this->reuse_port);
-                }
-                $this->server->set($this->options);
-                $this->server->handle('/', function (Request $request, Response $ws) {
-                    $objectId = spl_object_id($ws);
-                    $wsObjects[$objectId] = $ws;
-                    $this->context->addArray('wsObjects', $wsObjects);
-                    if ($this->checkUpgrade($request, $ws)) {
-                        $ws->upgrade();
-                        $this->handles($request, $ws);
+        $status = Coroutine::join([
+            go(function () {
+                $this->onBeforeEvent();
+                if (!$this->server instanceof \Swoole\Coroutine\Http\Server) {
+                    if ($this->type == 'ws') {
+                        $this->server = new Server($this->host, $this->port, false, $this->reuse_port);
+                    } else {
+                        $this->server = new Server($this->host, $this->port, true, $this->reuse_port);
                     }
-                });
-            }
-            $this->server->start();
-        });
-
-        go(function () {
-            $this->addlistenerPort($this->channelListener);
-        });
+                    $this->server->set($this->options);
+                    $this->server->handle('/', function (Request $request, Response $ws) {
+                        $objectId = spl_object_id($ws);
+                        $wsObjects[$objectId] = $ws;
+                        $this->context->addArray('wsObjects', $wsObjects);
+                        if ($this->checkUpgrade($request, $ws)) {
+                            $ws->upgrade();
+                            $this->handles($request, $ws);
+                        }
+                    });
+                }
+                $this->server->start();
+            }),
+            go(function () {
+                $this->addlistenerPort($this->channelListener);
+            }),
+        ], 1);
+        var_dump($status, swoole_strerror(swoole_last_error(), 9));
     }
 
     public function onBeforeEvent()
