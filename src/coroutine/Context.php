@@ -3,7 +3,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2022-08-27 15:04:10
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-19 20:03:14
+ * @Last Modified time: 2022-09-28 17:43:33
  */
 
 namespace diandi\swoole\coroutine;
@@ -78,7 +78,7 @@ class Context extends Component
         if (!is_array($oldArray)) {
             $oldArray = [];
         }
-        $newArray = ArrayHelper::merge($oldArray, $val);
+        $newArray = $val+ $oldArray;
         self::setContextDataByKey($key, $newArray);
     }
 
