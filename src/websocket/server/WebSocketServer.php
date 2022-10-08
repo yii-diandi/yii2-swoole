@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-09-21 19:26:33
+ * @Last Modified time: 2022-10-08 19:04:33
  */
 
 namespace diandi\swoole\websocket\server;
@@ -135,15 +135,11 @@ class WebSocketServer extends Component
     }
 
     /**
-     * 上下文初始化.
-     *
+     * 上下文初始化
      * @return void
-     * @date 2022-09-04
-     *
+     * @date 2022-10-08
      * @example
-     *
-     * @author Li Jinfang
-     *
+     * @author Wang Chunsheng
      * @since
      */
     public function ContextInit()
@@ -257,50 +253,6 @@ class WebSocketServer extends Component
         }
     }
 
-    /**
-     * 服务运行入口.
-     */
-    public function run1()
-    {
-        global $argv;
-        if (!isset($argv[0], $argv[1])) {
-            print_r('invalid run params,see help,run like:php http-server.php start|stop|reload'.PHP_EOL);
-
-            return;
-        }
-        $command = $argv[1];
-
-        $pidFile = $this->options['pid_file'];
-
-        $masterPid = file_exists($pidFile) ? file_get_contents($pidFile) : null;
-        if ($command == 'start') {
-            if ($masterPid > 0 and posix_kill($masterPid, 0)) {
-                print_r('Server is already running. Please stop it first.'.PHP_EOL);
-                exit;
-            }
-
-            return $this->server->start();
-        } elseif ($command == 'stop') {
-            if (!empty($masterPid)) {
-                posix_kill($masterPid, SIGTERM);
-                if (PHP_OS == 'Darwin') {
-                    //mac下.发送信号量无法触发shutdown.
-                    unlink($pidFile);
-                }
-            } else {
-                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGTERM.'.PHP_EOL);
-            }
-            exit;
-        } elseif ($command == 'reload') {
-            if (!empty($masterPid)) {
-                posix_kill($masterPid, SIGUSR1); // reload all worker
-                //                posix_kill($masterPid, SIGUSR2); // reload all task
-            } else {
-                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGUSR1.'.PHP_EOL);
-            }
-            exit;
-        }
-    }
 
 	/**
      * 服务运行入口.
@@ -332,7 +284,7 @@ class WebSocketServer extends Component
                          }
                      });
                  }
-                 $this->server->start();
+                 $this->server->start();                    
              }),
              go(function () {
                  $this->addlistenerPort($this->channelListener);
