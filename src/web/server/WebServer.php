@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-10-08 20:42:14
+ * @Last Modified time: 2022-10-09 09:48:35
  */
 
 namespace diandi\swoole\web\server;
@@ -329,16 +329,16 @@ class WebServer extends Component
         // global $_GPC;
 
         try {
-            $server = $this->server;
-           
+            
             if ($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
                 $response->end();
                 return;
             }else{
+                $server = $this->server;
                 // Context::put('swooleServer', $request_uri);
                 Yii::$app->request->setRequest($request);
                 Yii::$app->response->setResponse($response);
-                $this->server->handle('/', function ($request, $response) use ($server) {
+                $server->handle('/', function ($request, $response) use ($server) {
                     $request_uri = $request->server['request_uri'];
                     $router =  explode('/',ltrim($request_uri,'/'));
                     $addons = 'addons\\'.$router[0];
@@ -346,9 +346,10 @@ class WebServer extends Component
                     $action = 'action'.$router[2];
                     $params = $router[3]??'';
                     $class = Yii::createObject($addons.'\api\\'.$controller);
-                    $class->{$action}($params);
-                    $response->end("<h1>Stop</h1>");
-                    $this->server->shutdown();
+                    $Res = $class->{$action}($params);
+                    $response->write(json_encode($Res));
+                    // $this->server->shutdown();
+                    Yii::$app->request->onEndRequest();
                 });
             }
             

@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-08-30 20:13:08
+ * @Last Modified time: 2022-10-12 18:22:21
  */
 
 namespace diandi\swoole\server;
@@ -13,13 +13,13 @@ use diandi\swoole\web\Application;
 use Throwable;
 use Yii;
 use yii\base\Component;
+use yii\base\InvalidConfigException;
 use yii\web\ErrorHandler;
 
 /**
- * 长连接
+ * 长连接.
  *
  * Class WebSocketServer
- * @package console\controllers
  */
 class BaseServer extends Component
 {
@@ -68,7 +68,8 @@ class BaseServer extends Component
     public $server;
 
     /**
-     * @inheritDoc
+     * {@inheritdoc}
+     *
      * @throws InvalidConfigException
      */
     public function init()
@@ -79,7 +80,6 @@ class BaseServer extends Component
         }
 
         if (!$this->server instanceof \Swoole\Server) {
-
             $this->server = new \Swoole\Server($this->host, $this->port, $this->mode, $this->sockType);
 
             // 您可以混合使用UDP/TCP，同时监听内网和外网端口，多端口监听参考 addlistener小节。
@@ -93,22 +93,21 @@ class BaseServer extends Component
         }
 
         foreach ($this->events() as $event => $callback) {
-            if (method_exists($this, 'on' . $event)) {
+            if (method_exists($this, 'on'.$event)) {
                 $this->server->on($event, $callback);
             }
         }
     }
 
     /**
-     * 服务运行入口
-     * @param array $config swoole配置文件
-     * @param callable $func 启动回调
+     * 服务运行入口.
      */
     public function run()
     {
         global $argv;
         if (!isset($argv[0], $argv[1])) {
-            print_r("invalid run params,see help,run like:php http-server.php start|stop|reload" . PHP_EOL);
+            print_r('invalid run params,see help,run like:php http-server.php start|stop|reload'.PHP_EOL);
+
             return;
         }
         $command = $argv[1];
@@ -118,19 +117,20 @@ class BaseServer extends Component
         $masterPid = file_exists($pidFile) ? file_get_contents($pidFile) : null;
         if ($command == 'start') {
             if ($masterPid > 0 and posix_kill($masterPid, 0)) {
-                print_r('Server is already running. Please stop it first.' . PHP_EOL);
+                print_r('Server is already running. Please stop it first.'.PHP_EOL);
                 exit;
             }
+
             return $this->server->start();
         } elseif ($command == 'stop') {
             if (!empty($masterPid)) {
                 posix_kill($masterPid, SIGTERM);
-                if (PHP_OS == "Darwin") {
+                if (PHP_OS == 'Darwin') {
                     //mac下.发送信号量无法触发shutdown.
                     unlink($pidFile);
                 }
             } else {
-                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGTERM.' . PHP_EOL);
+                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGTERM.'.PHP_EOL);
             }
             exit;
         } elseif ($command == 'reload') {
@@ -138,19 +138,19 @@ class BaseServer extends Component
                 posix_kill($masterPid, SIGUSR1); // reload all worker
                 //                posix_kill($masterPid, SIGUSR2); // reload all task
             } else {
-                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGUSR1.' . PHP_EOL);
+                print_r('master pid is null, maybe you delete the pid file we created. you can manually kill the master process with signal SIGUSR1.'.PHP_EOL);
             }
             exit;
         }
     }
 
     /**
-     * 事件监听
+     * 事件监听.
+     *
      * @return array
      */
     public function events()
     {
-
         $events = [
             'start' => [$this, 'onStart'],
             'workerStart' => [$this, 'onWorkerStart'],
@@ -179,7 +179,8 @@ class BaseServer extends Component
     }
 
     /**
-     * 启动服务器
+     * 启动服务器.
+     *
      * @return bool
      */
     public function start()
@@ -188,8 +189,7 @@ class BaseServer extends Component
     }
 
     /**
-     * master启动
-     * @param \Swoole\Server $server
+     * master启动.
      */
     public function onStart(\Swoole\Server $server)
     {
@@ -197,9 +197,10 @@ class BaseServer extends Component
     }
 
     /**
-     * 工作进程启动时实例化框架
-     * @param \Swoole\Server $server
+     * 工作进程启动时实例化框架.
+     *
      * @param int $workerId
+     *
      * @throws InvalidConfigException
      */
     public function onWorkerStart(\Swoole\Server $server, $workerId)
@@ -217,15 +218,14 @@ class BaseServer extends Component
                 @swoole_set_process_name("php {$argv[0]} event worker");
             }
         } catch (\Exception $e) {
-            print_r("start yii error:" . ErrorHandler::convertExceptionToString($e) . PHP_EOL);
+            print_r('start yii error:'.ErrorHandler::convertExceptionToString($e).PHP_EOL);
             // $this->server->shutdown();
         }
-
     }
 
     /**
-     * 工作进程异常
-     * @param \Swoole\Server $server
+     * 工作进程异常.
+     *
      * @param $workerId
      * @param $workerPid
      * @param $exitCode
@@ -242,7 +242,6 @@ class BaseServer extends Component
 
     public function onWorkerStop(\Swoole\Server $server, int $workerId)
     {
-
     }
 
     public function onWorkerExit(\Swoole\Server $server, int $workerId)
@@ -256,42 +255,41 @@ class BaseServer extends Component
 
     public function onReceive(\Swoole\Server $server, int $fd, int $reactorId, string $data)
     {
-        echo "[#" . $this->worker_id . "]\tClient[$fd]: $data\n";
+        echo '[#'.$this->worker_id."]\tClient[$fd]: $data\n";
     }
 
     public function onPacket(\Swoole\Server $server, string $data, array $clientInfo)
     {
-
         echo "[#onPacket]\tClient[$clientInfo]: $data\n";
     }
 
     public function onPipeMessage(\Swoole\Server $server, int $src_worker_id, mixed $message)
     {
-        echo "[#onPipeMessage]";
+        echo '[#onPipeMessage]';
     }
 
     public function onManagerStart(\Swoole\Server $server)
     {
-        echo "[#onManagerStart]";
+        echo '[#onManagerStart]';
     }
 
     public function onManagerStop(\Swoole\Server $server)
     {
-        echo "[#onManagerStop]";
+        echo '[#onManagerStop]';
     }
 
     public function onBeforeReload(\Swoole\Server $server)
     {
-        echo "[#onBeforeReload]";
+        echo '[#onBeforeReload]';
     }
 
     public function onAfterReload(\Swoole\Server $server)
     {
-        echo "[#onAfterReload]";
+        echo '[#onAfterReload]';
     }
 
     /**
-     * 开启连接
+     * 开启连接.
      *
      * @param $server
      * @param $frame
@@ -305,14 +303,14 @@ class BaseServer extends Component
     }
 
     /**
-     * 关闭连接
+     * 关闭连接.
      *
      * @param $server
      * @param $fd
      */
     public function onClose(\Swoole\Server $server, $fd)
     {
-        echo "client {$fd} closed" . PHP_EOL;
+        echo "client {$fd} closed".PHP_EOL;
     }
 
     /**
@@ -331,20 +329,21 @@ class BaseServer extends Component
             list($class, $action) = $handler;
 
             $obj = new $class();
+
             return call_user_func_array([$obj, $action], $params);
         } catch (Throwable $e) {
             Yii::$app->errorHandler->handleException($e);
+
             return 1;
         }
     }
 
     public function onCorTask(\Swoole\Server $server, \Swoole\Server\Task $task)
     {
-
     }
 
     /**
-     * 处理异步任务的结果
+     * 处理异步任务的结果.
      *
      * @param $server
      * @param $task_id
@@ -352,7 +351,6 @@ class BaseServer extends Component
      */
     public function onFinish(\Swoole\Server $server, $task_id, $data)
     {
-
-        echo "AsyncTask[$task_id] 完成: $data" . PHP_EOL;
+        echo "AsyncTask[$task_id] 完成: $data".PHP_EOL;
     }
 }
