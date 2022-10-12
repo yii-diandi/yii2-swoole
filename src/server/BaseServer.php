@@ -17,7 +17,7 @@ use yii\base\InvalidConfigException;
 use yii\web\ErrorHandler;
 
 /**
- * 长连接.
+ * 基础服务长连接.
  *
  * Class WebSocketServer
  */
