@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-12-01 16:40:00
+ * @Last Modified time: 2022-12-01 16:47:43
  */
 
 namespace diandi\swoole\web\server;
@@ -103,7 +103,7 @@ class WebServer extends Component
     public $app = [];
 
     /**
-     * @var \Swoole\Http\Server swoole server实例
+     * @var \Swoole\Coroutine\Http\Server swoole server实例
      */
     public $server;
 
