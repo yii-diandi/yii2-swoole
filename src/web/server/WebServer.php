@@ -4,26 +4,26 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-10-09 09:48:35
+ * @Last Modified time: 2022-12-01 16:40:00
  */
 
 namespace diandi\swoole\web\server;
 
 use diandi\addons\models\DdAddons;
-use diandi\swoole\web\Application;
 use diandi\swoole\websocket\Context;
 use diandi\swoole\websocket\events\webSocketEvent;
+use diandi\swoole\web\Application;
+use function Swoole\Coroutine\run;
 use Swoole\Coroutine;
 use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\Http\Server;
-use function Swoole\Coroutine\run;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
-use Swoole\WebSocket\CloseFrame;
 use Yii;
 use yii\base\Component;
 use yii\base\ErrorHandler;
 use yii\base\Event;
+use yii\base\InvalidConfigException;
 use yii\helpers\ArrayHelper;
 
 /**
@@ -39,23 +39,13 @@ class WebServer extends Component
      * @var string 监听主机
      */
     public $host = 'localhost';
-    
+
     /**
      * @var int 监听端口
      */
     public $port = 9501;
-    
-    /**
-     * @var int 进程模型
-     */
-    public $mode = SWOOLE_PROCESS;
-    
-    /**
-     * @var int SOCKET类型
-     */
-    public $sockType = SWOOLE_SOCK_TCP;
 
-    public $type = 'https';
+    public $ssl = false;
 
     /**
      * bool $reuse_port.
@@ -133,7 +123,7 @@ class WebServer extends Component
     public function onBeforeEvent()
     {
         Event::on(webSocketEvent::className(), self::EVENT_WEBSOCKET_BEFORE, function ($event) {
-            var_dump($event->cid);  // 显示 "null"
+            var_dump($event->cid); // 显示 "null"
         });
     }
 
@@ -180,17 +170,12 @@ class WebServer extends Component
     {
     }
 
-   
-
     // 系统校验后自己处理
     public function messageReturn(Request $request, Response $ws, $message, $channel)
     {
     }
 
-  
-
-
-	/**
+    /**
      * 服务运行入口.
      */
     public function run()
@@ -201,29 +186,25 @@ class WebServer extends Component
         $this->channelListener = new Channel($this->channelNum);
         $this->ContextInit();
         $status = Coroutine::join([
-             go(function () {
-                 $this->onBeforeEvent();
-                 if (!$this->server instanceof \Swoole\Coroutine\Http\Server) {
-                     if ($this->type == 'https') {
-                         $this->server = new Server($this->host, $this->port, false, $this->reuse_port);
-                     } else {
-                         $this->server = new Server($this->host, $this->port, true, $this->reuse_port);
-                     }
-                     $this->server->set($this->options);
-                     $this->server->handle('/', function (Request $request, Response $Response) {
-                         $objectId = spl_object_id($Response);
-                         $wsObjects[$objectId] = $Response;
-                         $this->context->addArray('wsObjects', $wsObjects);
-                         $this->handles($request, $Response);
-                     });
-                 }
-                 $this->start();
-                //  $this->server->start();                    
-             }),
-             go(function () {
-                 $this->addlistenerPort($this->channelListener);
-             }),
-         ]);
+            go(function () {
+                $this->onBeforeEvent();
+                if (!$this->server instanceof \Swoole\Coroutine\Http\Server) {
+                    $this->server = new Server($this->host, $this->port, $this->ssl, $this->reuse_port);
+                    $this->server->set($this->options);
+                    $this->server->handle('/', function (Request $request, Response $Response) {
+                        $objectId = spl_object_id($Response);
+                        $wsObjects[$objectId] = $Response;
+                        $this->context->addArray('wsObjects', $wsObjects);
+                        $this->handles($request, $Response);
+                    });
+                }
+                $this->start();
+                //  $this->server->start();
+            }),
+            go(function () {
+                $this->addlistenerPort($this->channelListener);
+            }),
+        ]);
 
         var_dump($status, swoole_strerror(swoole_last_error(), 9));
 
@@ -239,7 +220,7 @@ class WebServer extends Component
     {
         try {
             @swoole_set_process_name("ddicms-webServer");
-            
+
             $Application = new Application($this->app);
             // 初始化模块
             Yii::$app->setModules($this->getModulesByAddons());
@@ -251,7 +232,7 @@ class WebServer extends Component
         return $this->server->start();
     }
 
-     /**
+    /**
      * 获取模块.
      *
      * @throws \yii\base\InvalidConfigException
@@ -261,7 +242,7 @@ class WebServer extends Component
         // 系统已经安装的
         $DdAddons = new DdAddons();
         $addons = $DdAddons->find()->asArray()->all();
-   
+
         $authListAddons = array_column($addons, 'identifie');
         $moduleFile = 'api';
         $modules = [];
@@ -301,7 +282,6 @@ class WebServer extends Component
         return $modules;
     }
 
-    
     public static function toUnderScore($str)
     {
         $array = [];
@@ -324,36 +304,33 @@ class WebServer extends Component
     {
         // $response->end("<h1>Index</h1>");
 
-      
-
         // global $_GPC;
 
         try {
-            
+
             if ($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
                 $response->end();
                 return;
-            }else{
+            } else {
                 $server = $this->server;
                 // Context::put('swooleServer', $request_uri);
                 Yii::$app->request->setRequest($request);
                 Yii::$app->response->setResponse($response);
                 $server->handle('/', function ($request, $response) use ($server) {
                     $request_uri = $request->server['request_uri'];
-                    $router =  explode('/',ltrim($request_uri,'/'));
-                    $addons = 'addons\\'.$router[0];
-                    $controller = $router[1].'Controller';
-                    $action = 'action'.$router[2];
-                    $params = $router[3]??'';
-                    $class = Yii::createObject($addons.'\api\\'.$controller);
+                    $router = explode('/', ltrim($request_uri, '/'));
+                    $addons = 'addons\\' . $router[0];
+                    $controller = $router[1] . 'Controller';
+                    $action = 'action' . $router[2];
+                    $params = $router[3] ?? '';
+                    $class = Yii::createObject($addons . '\api\\' . $controller);
                     $Res = $class->{$action}($params);
                     $response->write(json_encode($Res));
                     // $this->server->shutdown();
                     Yii::$app->request->onEndRequest();
                 });
             }
-            
-            
+
             // if (Yii::$app->response->checkAccess($response)) {
             //     Yii::$app->run();
             //     Yii::$app->request->onEndRequest();
