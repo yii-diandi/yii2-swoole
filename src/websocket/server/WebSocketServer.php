@@ -4,7 +4,7 @@
  * @Author: Wang chunsheng  email:2192138785@qq.com
  * @Date:   2021-01-20 03:20:39
  * @Last Modified by:   Wang chunsheng  email:2192138785@qq.com
- * @Last Modified time: 2022-10-08 19:04:33
+ * @Last Modified time: 2022-10-18 17:27:27
  */
 
 namespace diandi\swoole\websocket\server;
@@ -20,6 +20,7 @@ use Swoole\Http\Response;
 use Swoole\WebSocket\CloseFrame;
 use yii\base\Component;
 use yii\base\Event;
+use yii\base\InvalidConfigException;
 use yii\helpers\ArrayHelper;
 
 /**
@@ -135,11 +136,15 @@ class WebSocketServer extends Component
     }
 
     /**
-     * 上下文初始化
+     * 上下文初始化.
+     *
      * @return void
      * @date 2022-10-08
+     *
      * @example
+     *
      * @author Wang Chunsheng
+     *
      * @since
      */
     public function ContextInit()
@@ -253,8 +258,7 @@ class WebSocketServer extends Component
         }
     }
 
-
-	/**
+    /**
      * 服务运行入口.
      */
     public function run()
@@ -284,7 +288,7 @@ class WebSocketServer extends Component
                          }
                      });
                  }
-                 $this->server->start();                    
+                 $this->server->start();
              }),
              go(function () {
                  $this->addlistenerPort($this->channelListener);
